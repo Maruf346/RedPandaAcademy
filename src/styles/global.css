@@ -151,6 +151,10 @@ code {
   color: var(--red);
 }
 
+.orange {
+  color: var(--panda);
+}
+
 .center {
   text-align: center;
 }
@@ -164,6 +168,76 @@ code {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
+}
+
+.homeHero {
+  margin: 4px 0 10px;
+  text-align: center;
+}
+
+.homeHero img {
+  width: min(72%, 250px);
+  height: auto;
+}
+
+.rankHero {
+  border-color: #4a3a22;
+  background: linear-gradient(135deg, #20242c, #2a2016);
+  text-align: center;
+}
+
+.rankEmoji {
+  font-size: 44px;
+  line-height: 1.1;
+}
+
+.rankCta {
+  margin-top: 10px;
+}
+
+.rankTop {
+  margin-top: 6px;
+}
+
+.bar {
+  overflow: hidden;
+  max-width: 280px;
+  height: 8px;
+  margin: 10px auto;
+  border-radius: 99px;
+  background: var(--card2);
+}
+
+.bar > i {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, var(--panda-dk), var(--panda));
+}
+
+.splitCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.assignBtn {
+  margin-top: 6px;
+}
+
+.weaknessLine {
+  margin-bottom: 6px;
+}
+
+.progressHelp {
+  margin-top: 4px;
+}
+
+.progressBtns {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
 }
 
 .row {
@@ -515,10 +589,12 @@ li {
 
 .tabs a {
   display: flex;
+  flex-direction: column;
   min-width: 0;
   flex: 1 1 0;
   align-items: center;
   justify-content: center;
+  gap: 2px;
   min-height: 42px;
   border-radius: 8px;
   color: var(--dim);
@@ -526,7 +602,18 @@ li {
   text-align: center;
   text-decoration: none;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 400;
+}
+
+.tabs a .ico {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.tabs a .tabLogo {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
 }
 
 .tabs a.on {
@@ -536,5 +623,16 @@ li {
 @media (min-width: 680px) {
   .tabs a {
     font-size: 12px;
+  }
+}
+
+@media (max-width: 420px) {
+  .splitCard {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .splitCard .btn {
+    width: 100%;
   }
 }

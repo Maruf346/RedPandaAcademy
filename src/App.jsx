@@ -32,15 +32,16 @@ import {
 import { ProgressProvider, useProgress } from "./context/ProgressContext.jsx";
 import { AI_NOTICE, aiComplete, aiMayWork } from "./lib/ai.js";
 import { decodeProgress, encodeProgress } from "./lib/progressCode.js";
+import { canUseStorage } from "./lib/storage.js";
 import { gradePrompt, kbPrompt, weaknessPrompt } from "./lib/prompts.js";
 
 const navItems = [
-  { to: "/", label: "Home", end: true },
-  { to: "/learn", label: "Learn" },
-  { to: "/drill", label: "Drill" },
-  { to: "/quiz", label: "Rank Up" },
-  { to: "/bot", label: "Panda Bot" },
-  { to: "/grade", label: "Grade Call" }
+  { to: "/", icon: "🏠", label: "Home", end: true },
+  { to: "/learn", icon: "📖", label: "Learn" },
+  { to: "/drill", icon: "🥊", label: "Drill" },
+  { to: "/quiz", icon: "🎓", label: "Rank Up" },
+  { to: "/bot", icon: "logo", label: "Panda Bot" },
+  { to: "/grade", icon: "📝", label: "Grade Call" }
 ];
 
 function cx(...parts) {
@@ -61,6 +62,21 @@ function Script({ children }) {
 
 function Notice({ children }) {
   return <div className="notice">{children}</div>;
+}
+
+function today() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function weakestKpis(state) {
+  return Object.entries(state.kpiStats || {})
+    .map(([n, stats]) => ({
+      n: Number(n),
+      score: (stats.fail || 0) * 2 + (stats.partial || 0) - (stats.pass || 0)
+    }))
+    .filter((item) => item.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3);
 }
 
 function Tabs({ items, active, base }) {
@@ -92,6 +108,7 @@ function Locked({ children }) {
 
 function Shell() {
   const { state } = useProgress();
+  const currentRank = RANKS[state.rank] || RANKS[0];
 
   return (
     <>
@@ -100,9 +117,11 @@ function Shell() {
           <img className="mark" src="/logo.png" alt="" />
           <div>
             <h1>Red Panda Closer Academy</h1>
-            <p>Sales training loop</p>
+            <p>Red Panda Roofing · Turn average reps into great ones</p>
           </div>
-          <span className="rankchip">{RANKS[state.rank]?.name || "Rookie"}</span>
+          <span className="rankchip">
+            <span aria-hidden="true">{currentRank.em}</span> {currentRank.name}
+          </span>
         </header>
 
         <Routes>
@@ -126,6 +145,11 @@ function Shell() {
             end={item.end}
             className={({ isActive }) => (isActive ? "on" : undefined)}
           >
+            {item.icon === "logo" ? (
+              <img className="ico tabLogo" src="/logo.png" alt="" />
+            ) : (
+              <span className="ico">{item.icon}</span>
+            )}
             <span>{item.label}</span>
           </NavLink>
         ))}
@@ -136,11 +160,21 @@ function Shell() {
 
 function HomePage() {
   const { state, dispatch, snapshot } = useProgress();
+  const navigate = useNavigate();
   const [code, setCode] = useState("");
+  const [codeMode, setCodeMode] = useState("");
   const mastered = Object.values(state.cards).filter((n) => n >= 2).length;
-  const nextRank = RANKS[Math.min(3, state.rank + 1)];
+  const nextExam = state.rank < 3 ? QUIZZES[state.rank] : null;
+  const openAssigns = state.assignments.filter((item) => !item.done);
+  const drillTotal =
+    Object.values(state.drills).reduce((a, b) => a + b, 0) +
+    (state.customDone || 0);
+  const phase = PROTOCOL.phases[state.proto.phase - 1] || PROTOCOL.phases[0];
+  const weak = weakestKpis(state);
+  const storageOn = canUseStorage();
 
   function exportNow() {
+    setCodeMode("backup");
     setCode(encodeProgress(snapshot()));
   }
 
@@ -155,57 +189,139 @@ function HomePage() {
 
   return (
     <main className="stack">
-      <Card>
-        <p className="eyebrow">Current rank</p>
-        <h2>
-          {RANKS[state.rank]?.name || "Rookie"}{" "}
-          <span className="muted">of Top Rep</span>
-        </h2>
-        <p>{RANKS[state.rank]?.unlock}</p>
-        {state.rank < 3 ? (
-          <p className="muted">Next unlock: {nextRank?.name}</p>
+      {state.rank === 0 && (
+        <div className="homeHero">
+          <img src="/RedPanda.png" alt="Red Panda Roofing" />
+        </div>
+      )}
+
+      <Card className="rankHero">
+        <div className="rankEmoji">{RANKS[state.rank].em}</div>
+        <div className="big">{RANKS[state.rank].name}</div>
+        <div className="muted">{RANKS[state.rank].unlock}</div>
+        {nextExam ? (
+          <>
+            <div className="bar">
+              <i style={{ width: `${state.best[state.rank] || 0}%` }} />
+            </div>
+            <div className="small muted">
+              Next rank: pass the {nextExam.name} at 80%+{" "}
+              {state.best[state.rank]
+                ? `(best so far: ${state.best[state.rank]}%)`
+                : ""}
+            </div>
+            <button className="btn rankCta" onClick={() => navigate("/quiz")}>
+              Take the {nextExam.name}
+            </button>
+          </>
         ) : (
-          <p className="gold">Top of the ladder. Now keep it sharp.</p>
+          <div className="small gold rankTop">
+            Top of the ladder. Now keep it — grade every call.
+          </div>
         )}
       </Card>
 
       <Card>
-        <h2>Assigned Drills</h2>
-        {state.assignments.length === 0 ? (
-          <p className="muted">Nothing assigned yet. Miss a quiz or grade a call to generate work.</p>
+        <h2>📌 Assigned Drills{openAssigns.length ? ` (${openAssigns.length})` : ""}</h2>
+        {openAssigns.length === 0 ? (
+          <p className="muted">
+            Nothing assigned. Fail a quiz or grade a call and this fills itself —
+            your misses become your workout.
+          </p>
         ) : (
-          state.assignments.map((item, index) => (
-            <div className={cx("assign", item.done && "done")} key={`${item.name}-${index}`}>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={!!item.done}
-                  onChange={() => dispatch({ type: "DONE_ASSIGNMENT", index })}
-                />{" "}
-                <b>{item.name}</b>
-              </label>
-              <p>{item.why}</p>
-              <p className="muted">{item.sets || 2} clean sets</p>
-            </div>
-          ))
+          openAssigns.map((item) => {
+            const realIndex = state.assignments.indexOf(item);
+            return (
+              <div className="assign" key={`${item.name}-${realIndex}`}>
+                <b>{item.name}</b> — {item.sets || ""}
+                <br />
+                <span className="muted">{item.why || ""}</span>
+                <br />
+                <span className="small">Pass: {item.pass || "—"}</span>
+                <br />
+                <button
+                  className="btn small assignBtn"
+                  onClick={() =>
+                    dispatch({ type: "DONE_ASSIGNMENT", index: realIndex })
+                  }
+                >
+                  Mark complete
+                </button>
+              </div>
+            );
+          })
         )}
       </Card>
 
       <div className="grid2">
-        <Card>
-          <h3>Flashcards</h3>
-          <div className="big">{mastered}/{CARDS.length}</div>
-          <p className="muted">Nailed twice = mastered.</p>
+        <Card className="center">
+          <div className="big orange">{mastered}/{CARDS.length}</div>
+          <div className="small muted">
+            Scripts mastered
+            <br />
+            (nailed ×2)
+          </div>
         </Card>
-        <Card>
-          <h3>Drills</h3>
-          <div className="big">{Object.values(state.drills).reduce((a, b) => a + b, 0)}</div>
-          <p className="muted">Completed sets logged.</p>
+        <Card className="center">
+          <div className="big orange">{drillTotal}</div>
+          <div className="small muted">
+            Drill sets + custom
+            <br />
+            sessions logged
+          </div>
         </Card>
       </div>
 
+      <Card className="splitCard">
+        <div>
+          <h2>📅 Protocol — Phase {state.proto.phase}: {phase.name}</h2>
+          <span className="small muted">
+            {state.proto.phase === 1
+              ? (state.proto.p1 || []).includes(today())
+                ? "✓ Today's recall logged."
+                : "Today's 90-second recall is waiting."
+              : "Run the Daily 20: recall → reps → misses."}
+          </span>
+        </div>
+        <button className="btn small" onClick={() => navigate("/drill/proto")}>
+          Today's 20
+        </button>
+      </Card>
+
       <Card>
-        <h2>Rank Ladder</h2>
+        <h2>💪 Train My Weakness</h2>
+        {weak.length ? (
+          <>
+            <div className="small muted weaknessLine">
+              Your weakest KPIs right now:{" "}
+              {weak.map((w) => (
+                <Pill hot key={w.n}>
+                  KPI {w.n} {KPIS[w.n - 1]?.name || ""}
+                </Pill>
+              ))}
+            </div>
+            <button className="btn block" onClick={() => navigate("/drill/train")}>
+              🎯 Train my weakest area
+            </button>
+          </>
+        ) : (
+          <>
+            <div className="small muted weaknessLine">
+              Generate a quiz, drill, or roleplay aimed at exactly what’s beating
+              you. Grade a call or take a quiz and this starts aiming itself.
+            </div>
+            <button
+              className="btn block ghost"
+              onClick={() => navigate("/drill/train")}
+            >
+              Open the generator
+            </button>
+          </>
+        )}
+      </Card>
+
+      <Card>
+        <h2>The Ladder — earn the right</h2>
         {RANKS.map((rank, index) => (
           <div
             className={cx(
@@ -217,25 +333,89 @@ function HomePage() {
           >
             <div className="em">{rank.em}</div>
             <div>
-              <b>{rank.name}</b>
-              <p className="muted">{rank.unlock}</p>
+              <b>{rank.name}</b>{" "}
+              {index < state.rank ? (
+                <span className="green small">✓ earned</span>
+              ) : index === state.rank ? (
+                <span className="orange small">← you are here</span>
+              ) : (
+                <span className="muted small">
+                  🔒 pass {QUIZZES[index - 1].name}
+                </span>
+              )}
+              <br />
+              <span className="small muted">{rank.unlock}</span>
             </div>
           </div>
         ))}
       </Card>
 
-      <Card>
-        <h2>Progress Code</h2>
-        <p className="muted">Backup and restore use the same code format as the legacy Netlify app.</p>
-        <div className="row">
-          <button className="btn" onClick={exportNow}>Export</button>
-          <button className="btn ghost" onClick={importNow}>Import</button>
+      <Card className="splitCard">
+        <div>
+          <h2>🧰 The Field Kit</h2>
+          <span className="small muted">
+            Discovery Form, 12-Step, Glossary & more — download to your device.
+          </span>
         </div>
-        <textarea
-          value={code}
-          onChange={(event) => setCode(event.target.value)}
-          placeholder="Export or paste a progress code"
-        />
+        <button className="btn small ghost" onClick={() => navigate("/learn/kit")}>
+          Open
+        </button>
+      </Card>
+
+      <Card>
+        <h2>💾 Progress</h2>
+        {storageOn ? (
+          <>
+            <div className="small green">
+              ✓ Auto-save is ON — your progress stays on this device.
+            </div>
+            <div className="small muted progressHelp">
+              Getting a new phone? Grab a backup code here and paste it on the
+              new device.
+            </div>
+          </>
+        ) : (
+          <div className="small muted">
+            Auto-save isn’t available in this view. Copy a backup code before you
+            close; paste it next time.
+          </div>
+        )}
+        <div className="progressBtns">
+          <button className="btn small ghost" onClick={exportNow}>
+            Backup code
+          </button>
+          <button
+            className="btn small ghost"
+            onClick={() => {
+              setCode("");
+              setCodeMode("restore");
+            }}
+          >
+            Restore from code
+          </button>
+        </div>
+        {codeMode === "backup" && (
+          <>
+            <textarea
+              readOnly
+              value={code}
+              onClick={(event) => event.currentTarget.select()}
+            />
+            <div className="small muted">Tap, copy, keep it somewhere.</div>
+          </>
+        )}
+        {codeMode === "restore" && (
+          <>
+            <textarea
+              value={code}
+              onChange={(event) => setCode(event.target.value)}
+              placeholder="Paste your progress code"
+            />
+            <button className="btn small" onClick={importNow}>
+              Restore
+            </button>
+          </>
+        )}
       </Card>
     </main>
   );
@@ -589,8 +769,14 @@ function ProtocolPage() {
           <label className="checkrow" key={item}>
             <input
               type="checkbox"
-              checked={(state.proto.p1 || []).includes(index)}
-              onChange={() => dispatch({ type: "TOGGLE_PROTO_ITEM", list: "p1", value: index })}
+              checked={(state.proto.p1 || []).includes(index === 0 ? today() : index)}
+              onChange={() =>
+                dispatch({
+                  type: "TOGGLE_PROTO_ITEM",
+                  list: "p1",
+                  value: index === 0 ? today() : index
+                })
+              }
             />
             <span>{item}</span>
           </label>
