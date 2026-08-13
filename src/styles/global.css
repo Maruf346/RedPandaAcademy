@@ -170,6 +170,12 @@ code {
   gap: 10px;
 }
 
+.grid3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+}
+
 .homeHero {
   margin: 4px 0 10px;
   text-align: center;
@@ -328,6 +334,20 @@ code {
   font-size: 13px;
 }
 
+.flag {
+  margin: 8px 0;
+  border: 1px solid #4a3a22;
+  border-radius: 10px;
+  background: #241e16;
+  color: #e3c89a;
+  padding: 10px 12px;
+  font-size: 13px;
+}
+
+.flag b {
+  color: var(--gold);
+}
+
 .assign {
   margin: 8px 0;
   border-left: 3px solid var(--gold);
@@ -368,6 +388,7 @@ code {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  margin-bottom: 12px;
 }
 
 .acc {
@@ -377,15 +398,20 @@ code {
   background: var(--card);
 }
 
-.acc summary {
+.acc > button {
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  border: 0;
+  background: none;
   padding: 13px 14px;
   color: var(--ink);
+  text-align: left;
   font-size: 14.5px;
   font-weight: 700;
+  font-family: inherit;
   cursor: pointer;
 }
 
@@ -397,8 +423,60 @@ code {
 }
 
 .acc .body {
+  display: none;
   padding: 2px 14px 14px;
   font-size: 14px;
+}
+
+.acc.open .body {
+  display: block;
+}
+
+.acc.open > button {
+  color: var(--panda);
+}
+
+.phaseHead,
+.partHead {
+  margin: 14px 0 8px;
+}
+
+.phaseHead {
+  letter-spacing: 1px;
+}
+
+.locked {
+  opacity: 0.5;
+  position: relative;
+}
+
+.lockedLearn {
+  padding: 30px;
+}
+
+.lockIcon {
+  font-size: 34px;
+}
+
+.glossCard {
+  padding: 12px;
+}
+
+.glossDef {
+  margin-top: 4px;
+}
+
+.fourC {
+  margin: 6px 0;
+}
+
+.diagTool {
+  display: block;
+  margin: 6px 0;
+}
+
+.diagEight {
+  margin-top: 14px;
 }
 
 .kpirow {
@@ -440,6 +518,20 @@ code {
   text-decoration: none;
 }
 
+.kitDoc {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 13px;
+}
+
+.kitBtn {
+  flex: 0 0 auto;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
 .doclink span {
   color: var(--dim);
   font-size: 13px;
@@ -459,6 +551,94 @@ code {
   padding: 26px 18px;
   text-align: center;
   cursor: pointer;
+}
+
+.flashMastered {
+  margin: 8px 0;
+}
+
+.flashStart {
+  margin-top: 12px;
+}
+
+.cardCount {
+  margin-bottom: 8px;
+}
+
+.drillScoreGrid {
+  margin-top: 10px;
+}
+
+.drillHow {
+  margin: 6px 0;
+}
+
+.scenarioBtns {
+  margin: 6px 0 2px;
+}
+
+.scenarioBtns .btn {
+  margin: 2px;
+}
+
+.trainPicker {
+  margin-top: 8px;
+}
+
+.trainFormat {
+  margin-top: 10px;
+}
+
+.trainGenerate {
+  margin-top: 10px;
+}
+
+.trainDone,
+.protoMotto,
+.dailySpacing,
+.weeklyLast,
+.recallLogged {
+  margin-top: 6px;
+}
+
+.protoHead {
+  border-color: #4a3a22;
+}
+
+.recallStart {
+  margin-top: 8px;
+}
+
+.recallBox {
+  margin: 8px 0;
+}
+
+.skeletonList {
+  columns: 2;
+  gap: 12px;
+}
+
+.anchorBar {
+  max-width: 200px;
+  margin: 6px 0;
+}
+
+.anchorBtn {
+  margin-left: 8px;
+}
+
+.weeklyBtns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.dailyBtns {
+  margin-top: 8px;
+}
+
+.principle {
+  margin: 6px 0;
 }
 
 .flash .front {

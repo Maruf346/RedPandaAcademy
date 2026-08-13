@@ -80,7 +80,7 @@ function reducer(state, action) {
         ...state,
         cards: {
           ...state.cards,
-          [action.index]: action.nailed ? current + 1 : Math.max(0, current - 1)
+          [action.index]: action.nailed ? current + 1 : 0
         }
       };
     }
@@ -151,6 +151,52 @@ function reducer(state, action) {
         : [...list, action.value];
       return { ...state, proto: { ...state.proto, [action.list]: next } };
     }
+    case "ADVANCE_PROTO":
+      return {
+        ...state,
+        proto: {
+          ...state.proto,
+          phase: Math.min(4, (state.proto.phase || 1) + 1)
+        }
+      };
+    case "LOG_RECALL": {
+      const p1 = state.proto.p1 || [];
+      return p1.includes(action.date)
+        ? state
+        : { ...state, proto: { ...state.proto, p1: [...p1, action.date] } };
+    }
+    case "INC_ANCHOR": {
+      const anchors = state.proto.anchors || {};
+      return {
+        ...state,
+        proto: {
+          ...state.proto,
+          anchors: {
+            ...anchors,
+            [action.index]: (anchors[action.index] || 0) + 1
+          }
+        }
+      };
+    }
+    case "SET_D12":
+      return {
+        ...state,
+        proto: {
+          ...state.proto,
+          d12: { ...(state.proto.d12 || {}), [action.n]: true }
+        }
+      };
+    case "LOG_WEEKLY":
+      return {
+        ...state,
+        proto: {
+          ...state.proto,
+          weekly: [
+            ...(state.proto.weekly || []),
+            { d: action.n, t: action.date }
+          ]
+        }
+      };
     default:
       return state;
   }
