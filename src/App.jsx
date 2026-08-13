@@ -1407,76 +1407,212 @@ function ProtocolPage() {
 
 function QuizPage() {
   const { state, dispatch } = useProgress();
-  const [qi, setQi] = useState(Math.min(state.rank, QUIZZES.length - 1));
-  const [answers, setAnswers] = useState({});
-  const [submitted, setSubmitted] = useState(false);
-  const quiz = QUIZZES[qi];
-  const correct = quiz.qs.filter((question, index) => answers[index] === question.a).length;
-  const score = Math.round((correct / quiz.qs.length) * 100);
+  const navigate = useNavigate();
+  const [quizRun, setQuizRun] = useState(null);
+  const quiz = QUIZZES[state.rank];
 
-  function submit() {
-    const wrongTopics = quiz.qs
-      .filter((question, index) => answers[index] !== question.a)
-      .map((question) => question.w || question.q);
-    dispatch({ type: "SCORE_QUIZ", qi, score, wrongTopics });
-    setSubmitted(true);
+  function startQuiz() {
+    setQuizRun({ idx: 0, correct: 0, picked: null, review: [] });
   }
+
+  function pick(i) {
+    if (quizRun.picked != null) return;
+    const question = quiz.qs[quizRun.idx];
+    setQuizRun({
+      ...quizRun,
+      picked: i,
+      correct: i === question.a ? quizRun.correct + 1 : quizRun.correct,
+      review:
+        i === question.a
+          ? quizRun.review
+          : [
+              ...quizRun.review,
+              {
+                q: question.q,
+                you: question.o[i],
+                ans: question.o[question.a],
+                w: question.w || ""
+              }
+            ]
+    });
+  }
+
+  function nextQuestion() {
+    setQuizRun({ ...quizRun, idx: quizRun.idx + 1, picked: null });
+  }
+
+  function score() {
+    return Math.round((100 * quizRun.correct) / quiz.qs.length);
+  }
+
+  function assignMisses() {
+    quizRun.review.slice(0, 3).forEach((miss) =>
+      dispatch({
+        type: "ADD_ASSIGNMENT",
+        assignment: {
+          name: `Study & re-drill: ${miss.q.slice(0, 60)}`,
+          why: `Missed on the ${quiz.name}`,
+          sets: "Flashcards + reread the module",
+          pass: "Answer it cold, twice",
+          done: false
+        }
+      })
+    );
+    navigate("/");
+  }
+
+  function claimRank() {
+    dispatch({ type: "CLAIM_RANK" });
+    setQuizRun(null);
+    navigate("/");
+  }
+
+  useEffect(() => {
+    if (quizRun && quiz && quizRun.idx >= quiz.qs.length) {
+      dispatch({
+        type: "SET_BEST",
+        qi: state.rank,
+        score: Math.round((100 * quizRun.correct) / quiz.qs.length)
+      });
+    }
+  }, [dispatch, quiz, quizRun, state.rank]);
+
+  if (state.rank >= 3 && !quizRun) {
+    return (
+      <main className="stack">
+        <Card className="center">
+          <div className="topRepIcon">🏆</div>
+          <h2>Top Rep</h2>
+          <p className="small muted">
+            You’ve passed every exam. The scoreboard now is your call grades —
+            go to Grade Call.
+          </p>
+        </Card>
+      </main>
+    );
+  }
+
+  if (!quizRun) {
+    return (
+      <main className="stack">
+        <Card className="center">
+          <h2>{quiz.name}</h2>
+          <p className="small muted">{quiz.desc}</p>
+          <p className="small quizMeta">
+            {quiz.qs.length} questions · 80% passes · fail and the missed topics
+            become assigned drills
+          </p>
+          {state.best[state.rank] ? (
+            <p className="small gold">Best so far: {state.best[state.rank]}%</p>
+          ) : null}
+          <button className="btn quizBegin" onClick={startQuiz}>
+            Begin
+          </button>
+        </Card>
+      </main>
+    );
+  }
+
+  if (quizRun.idx >= quiz.qs.length) {
+    const pct = score();
+    const passed = pct >= 80;
+
+    return (
+      <main className="stack">
+        <Card className="center">
+          {passed ? (
+            <img className="quizPassLogo" src="/RedPanda.png" alt="Red Panda Roofing" />
+          ) : (
+            <div className="quizFailIcon">🥊</div>
+          )}
+          <div className={cx("big", passed ? "green" : "red")}>{pct}%</div>
+          <p className="small muted">
+            {quizRun.correct} of {quiz.qs.length} correct —{" "}
+            {passed ? "PASSED" : "below the 80% line"}
+          </p>
+          {passed ? (
+            <button className="btn quizClaim" onClick={claimRank}>
+              Claim your rank: {RANKS[state.rank + 1].em}{" "}
+              {RANKS[state.rank + 1].name}
+            </button>
+          ) : (
+            <>
+              <p className="small quizFailText">
+                Missed topics are now on your dashboard as drills. Study, drill,
+                come back.
+              </p>
+              <button className="btn quizAction" onClick={assignMisses}>
+                Accept assignments
+              </button>{" "}
+              <button className="btn ghost quizAction" onClick={startQuiz}>
+                Retake now
+              </button>
+            </>
+          )}
+        </Card>
+        {quizRun.review.length ? (
+          <Card>
+            <h2>Review your misses</h2>
+            {quizRun.review.map((miss) => (
+              <div className="assign" key={miss.q}>
+                <b>{miss.q}</b>
+                <br />
+                <span className="red small">You: {miss.you}</span>
+                <br />
+                <span className="green small">Ours: {miss.ans}</span>
+                {miss.w ? (
+                  <>
+                    <br />
+                    <span className="muted small">{miss.w}</span>
+                  </>
+                ) : null}
+              </div>
+            ))}
+          </Card>
+        ) : null}
+      </main>
+    );
+  }
+
+  const question = quiz.qs[quizRun.idx];
 
   return (
     <main className="stack">
+      <div className="small muted quizCount">
+        Question {quizRun.idx + 1} of {quiz.qs.length} · {quiz.name}
+      </div>
+      <div className="bar quizBar">
+        <i style={{ width: `${(100 * quizRun.idx) / quiz.qs.length}%` }} />
+      </div>
       <Card>
-        <h2>Rank Up</h2>
-        <select
-          value={qi}
-          onChange={(event) => {
-            setQi(Number(event.target.value));
-            setAnswers({});
-            setSubmitted(false);
-          }}
-        >
-          {QUIZZES.map((item, index) => (
-            <option key={item.name} value={index}>{item.name}</option>
-          ))}
-        </select>
-        <p className="muted">80 percent passes. Failed questions become assigned drills.</p>
-        <p>Best: {state.best[qi] || 0}%</p>
-      </Card>
-
-      {quiz.qs.map((question, index) => (
-        <Card key={`${question.q}-${index}`}>
-          <h3>{index + 1}. {question.q}</h3>
-          {question.o.map((option, oi) => (
+        <h2 className="quizQuestion">{question.q}</h2>
+        {question.o.map((option, i) => {
+          const cls =
+            quizRun.picked == null
+              ? ""
+              : i === question.a
+                ? "right"
+                : i === quizRun.picked
+                  ? "wrong"
+                  : "";
+          return (
             <button
-              className={cx(
-                "qopt",
-                answers[index] === oi && "sel",
-                submitted && question.a === oi && "right",
-                submitted && answers[index] === oi && question.a !== oi && "wrong"
-              )}
+              className={cx("qopt", cls)}
+              disabled={quizRun.picked != null}
               key={option}
-              onClick={() => !submitted && setAnswers({ ...answers, [index]: oi })}
+              onClick={() => pick(i)}
             >
               {option}
             </button>
-          ))}
-          {submitted && question.w && <p className="muted">{question.w}</p>}
-        </Card>
-      ))}
-
-      <Card>
-        {!submitted ? (
-          <button
-            className="btn block"
-            disabled={Object.keys(answers).length < quiz.qs.length}
-            onClick={submit}
-          >
-            Submit Exam
-          </button>
-        ) : (
-          <div className="center">
-            <div className={cx("big", score >= 80 ? "green" : "red")}>{score}%</div>
-            <p>{score >= 80 ? "Passed. Rank unlocked." : "Not yet. Drill the misses and retake."}</p>
-          </div>
+          );
+        })}
+        {quizRun.picked != null && (
+          <>
+            {question.w && <Flag label="WHY">{question.w}</Flag>}
+            <button className="btn block quizNext" onClick={nextQuestion}>
+              {quizRun.idx + 1 >= quiz.qs.length ? "See results" : "Next"}
+            </button>
+          </>
         )}
       </Card>
     </main>

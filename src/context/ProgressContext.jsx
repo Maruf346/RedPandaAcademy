@@ -92,6 +92,19 @@ function reducer(state, action) {
           [action.n]: (state.drills[action.n] || 0) + 1
         }
       };
+    case "SET_BEST":
+      return {
+        ...state,
+        best: {
+          ...state.best,
+          [action.qi]: Math.max(state.best[action.qi] || 0, action.score)
+        }
+      };
+    case "CLAIM_RANK":
+      return {
+        ...state,
+        rank: Math.max(state.rank, Math.min(3, state.rank + 1))
+      };
     case "SCORE_QUIZ": {
       const best = Math.max(state.best[action.qi] || 0, action.score);
       const passed = action.score >= 80;

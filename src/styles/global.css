@@ -641,6 +641,52 @@ code {
   margin: 6px 0;
 }
 
+.topRepIcon,
+.quizFailIcon {
+  font-size: 40px;
+}
+
+.quizMeta {
+  margin: 8px 0;
+}
+
+.quizBegin {
+  margin-top: 8px;
+}
+
+.quizCount {
+  margin-bottom: 6px;
+}
+
+.quizBar {
+  margin: 0;
+}
+
+.quizQuestion {
+  font-size: 15.5px;
+}
+
+.quizNext {
+  margin-top: 8px;
+}
+
+.quizPassLogo {
+  width: min(80%, 230px);
+  height: auto;
+}
+
+.quizClaim {
+  margin-top: 10px;
+}
+
+.quizFailText {
+  margin: 8px 0;
+}
+
+.quizAction {
+  margin-top: 6px;
+}
+
 .flash .front {
   color: var(--dim);
   font-size: 15px;
