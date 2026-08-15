@@ -1620,48 +1620,79 @@ function QuizPage() {
 }
 
 function BotPage() {
-  const [messages, setMessages] = useState([
-    { who: "bot", text: "Ask me from the playbook. I will route answers back to steps, KPIs, and drills." }
-  ]);
+  const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
 
   async function send() {
     if (!input.trim()) return;
-    const next = [...messages, { who: "user", text: input.trim() }];
+    const text = input.trim();
+    const next = [...messages, { who: "user", text }];
     setMessages(next);
     setInput("");
     setBusy(true);
     try {
-      const hist = next.map((m) => `${m.who.toUpperCase()}: ${m.text}`).join("\n");
-      const text = await aiComplete(`${kbPrompt()}\n\n=== CONVERSATION ===\n${hist}\nCOACH:`);
-      setMessages([...next, { who: "bot", text }]);
+      const hist = next
+        .slice(-6)
+        .map((m) => `${m.who === "user" ? "REP" : "COACH"}: ${m.text}`)
+        .join("\n");
+      const response = await aiComplete(
+        `${kbPrompt()}\n\n=== CONVERSATION ===\n${hist}\nCOACH:`
+      );
+      setMessages([...next, { who: "bot", text: response.trim() }]);
     } catch {
-      setMessages([...next, { who: "bot", text: AI_NOTICE }]);
+      setMessages([
+        ...next,
+        { who: "bot", text: `I can’t reach the AI from here. ${AI_NOTICE}` }
+      ]);
     } finally {
       setBusy(false);
+      window.setTimeout(() => window.scrollTo(0, document.body.scrollHeight), 0);
     }
   }
 
   return (
     <main className="stack">
       <Card>
-        <h2>Panda Bot</h2>
-        {!aiMayWork() && <Notice>{AI_NOTICE}</Notice>}
-        <div className="chat">
-          {messages.map((message, index) => (
-            <div className={cx("msg", message.who)} key={index}>{message.text}</div>
-          ))}
-        </div>
-        <textarea
+        <h2 className="botTitle">
+          <img src="/logo.png" alt="" /> Red Panda Bot
+        </h2>
+        <p className="small muted">
+          Docs-only coach. Ask about any step, script, scenario, or KPI. If it’s
+          not in the playbook, it says so.
+        </p>
+      </Card>
+      {!aiMayWork() && <Notice>{AI_NOTICE}</Notice>}
+      <div className="chat">
+        {messages.length ? (
+          messages.map((message, index) => (
+            <div className={cx("msg", message.who)} key={index}>
+              {message.text}
+            </div>
+          ))
+        ) : (
+          <div className="msg bot">
+            What do you want to sharpen? Try: “Give me the parachute script” ·
+            “What breaks KPI 15?” · “Homeowner said her brother roofs — what’s
+            the play?”
+          </div>
+        )}
+        {busy && <div className="msg bot">…thinking</div>}
+      </div>
+      <div className="botInputRow">
+        <input
+          type="text"
           value={input}
           onChange={(event) => setInput(event.target.value)}
-          placeholder="Ask about a step, KPI, objection, or drill"
+          onKeyDown={(event) => {
+            if (event.key === "Enter") send();
+          }}
+          placeholder="Ask the playbook…"
         />
-        <button className="btn block" disabled={busy} onClick={send}>
-          {busy ? "Thinking..." : "Send"}
+        <button className="btn" disabled={busy} onClick={send}>
+          Send
         </button>
-      </Card>
+      </div>
     </main>
   );
 }

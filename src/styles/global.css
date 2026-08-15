@@ -733,6 +733,27 @@ code {
   margin-bottom: 12px;
 }
 
+.botTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.botTitle img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.botInputRow {
+  display: flex;
+  gap: 8px;
+}
+
+.botInputRow input {
+  margin: 0;
+}
+
 .msg {
   max-width: 88%;
   border-radius: 14px;
