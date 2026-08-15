@@ -687,6 +687,17 @@ code {
   margin-top: 6px;
 }
 
+.scorehead {
+  margin: 10px 0 4px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.gradeButton,
+.gradeAdded {
+  margin-top: 8px;
+}
+
 .flash .front {
   color: var(--dim);
   font-size: 15px;

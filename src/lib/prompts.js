@@ -71,19 +71,20 @@ Ground it only in the playbook. Include a short setup, exact rep instructions, p
 }
 
 export function gradePrompt(transcript) {
-  return `${kbPrompt()}
+  const rules = KPIS.map(
+    (k) =>
+      `KPI ${k.n} ${k.name} (${k.step}) — PASS requires: ${k.pass} FAIL: ${k.fail}`
+  ).join("\n");
 
-=== CALL GRADING RULES ===
-Grade this sales appointment transcript against all 22 KPIs. Return ONLY valid JSON with this shape:
-{
-  "overall": 0,
-  "summary": "",
-  "whereDealDied": "",
-  "kpis": [{"n":1,"status":"pass|partial|fail","note":""}],
-  "scenarios": [1],
-  "drills": [{"name":"","why":"","sets":2}]
-}
+  return `You are the New Era Roofs call grader. Grade this sales appointment transcript against the 22 KPIs below. Philosophy: grade the mechanics, not the vibe — a closed deal that broke process scores as broken process. Enforce ⚠️ ceilings (broadcast deck KPI9, skipped guarantee KPI15, question-before-mirror KPIs 16/20-22) and automatic fails (rep-side discounting, one-legger pricing, unverifiable stats, financing from memory, anything manufactured, pressuring seniors past the family conversation). KPI 4 retroactive fail if a third-party name surfaces at close that didn't surface at discovery. Use "na" ONLY when the situation never called for it.
 
-Transcript:
+${rules}
+
+Additionally: tag every objection that appears in the transcript with its Pivot Points scenario number 1-20 (1 think-about-it, 2 three-estimates, 3 stone wall, 4 never-same-day, 5 bonus/tax timing, 6 price-too-much, 7 for-sale sign, 8 not-buying-today pact, 9 one-legger, 10 Mum's the Word, 11 competitor cheaper, 12 nothing down, 13 monthly payment, 14 out of budget, 15 too pushy, 16 family in trade, 17 senior's adult kids, 18 dad/uncle advisor, 19 total amount, 20 can't afford) and whether the rep handled it to methodology. These tags feed KPI 19 logging.
+
+Respond with ONLY valid JSON, no markdown, exactly this shape:
+{"summary":"one brutal sentence","scorecard":[{"n":1,"score":"pass|partial|fail|na","note":"short reason"} ... all 22],"failures":[{"kpi":16,"quote":"exact words from transcript","why":"which pass condition broke"}],"scenarioTags":[{"scenario":11,"handled":"pass|partial|fail","note":"short"}],"died":"KPI X at Step Y — one sentence why","drills":[{"name":"drill name","sets":"reps x sets","pass":"pass condition"},{"name":"...","sets":"...","pass":"..."}]}
+
+TRANSCRIPT:
 ${transcript}`;
 }

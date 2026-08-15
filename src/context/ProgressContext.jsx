@@ -129,15 +129,21 @@ function reducer(state, action) {
     case "RECORD_GRADE": {
       let kpiStats = state.kpiStats;
       let scenStats = state.scenStats;
-      (action.grade.kpis || []).forEach((kpi) => {
-        const status = ["pass", "partial", "fail"].includes(kpi.status)
-          ? kpi.status
+      (action.grade.scorecard || []).forEach((row) => {
+        const status = ["pass", "partial", "fail"].includes(row.score)
+          ? row.score
           : "partial";
-        kpiStats = bumpBucket(kpiStats, kpi.n, status);
+        if (row.score !== "na") kpiStats = bumpBucket(kpiStats, row.n, status);
       });
-      (action.grade.scenarios || []).forEach((n) => {
-        const prev = scenStats[n] || { count: 0, fail: 0 };
-        scenStats = { ...scenStats, [n]: { count: prev.count + 1, fail: prev.fail + 1 } };
+      (action.grade.scenarioTags || []).forEach((tag) => {
+        const prev = scenStats[tag.scenario] || { count: 0, fail: 0 };
+        scenStats = {
+          ...scenStats,
+          [tag.scenario]: {
+            count: prev.count + 1,
+            fail: prev.fail + (tag.handled === "pass" ? 0 : 1)
+          }
+        };
       });
       return {
         ...state,
@@ -148,8 +154,9 @@ function reducer(state, action) {
           ...state.assignments,
           ...(action.grade.drills || []).slice(0, 2).map((drill) => ({
             name: drill.name || "Assigned drill",
-            why: drill.why || "Assigned from graded call",
+            why: `Assigned from your graded call — ${action.grade.died || ""}`,
             sets: drill.sets || 2,
+            pass: drill.pass || "",
             done: false
           }))
         ]

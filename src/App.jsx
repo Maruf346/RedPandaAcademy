@@ -1698,10 +1698,86 @@ function BotPage() {
 }
 
 function parseGrade(text) {
-  const start = text.indexOf("{");
-  const end = text.lastIndexOf("}");
+  const clean = text.replace(/```json|```/g, "").trim();
+  const start = clean.indexOf("{");
+  const end = clean.lastIndexOf("}");
   if (start < 0 || end < start) throw new Error("No JSON returned");
-  return JSON.parse(text.slice(start, end + 1));
+  return JSON.parse(clean.slice(start, end + 1));
+}
+
+function gradeMark(score) {
+  if (score === "pass") return "✅";
+  if (score === "partial") return "⚠️";
+  if (score === "na") return "➖";
+  return "❌";
+}
+
+function RenderGrade({ grade }) {
+  return (
+    <Card>
+      <div className="scorehead">Brutal summary</div>
+      <p className="small">{grade.summary || ""}</p>
+
+      <div className="scorehead">Scorecard</div>
+      {(grade.scorecard || []).map((row) => (
+        <div className="kpirow" key={row.n}>
+          <span className="mk">{gradeMark(row.score)}</span>
+          <span>
+            <b>KPI {row.n}</b> {KPIS[row.n - 1]?.name || ""} —{" "}
+            <span className="muted">{row.note || ""}</span>
+          </span>
+        </div>
+      ))}
+
+      {grade.failures?.length ? (
+        <>
+          <div className="scorehead">Critical failures</div>
+          {grade.failures.map((failure, index) => (
+            <div className="assign" key={`${failure.kpi}-${index}`}>
+              <b>KPI {failure.kpi}</b> — “{failure.quote}”
+              <br />
+              <span className="muted small">{failure.why}</span>
+            </div>
+          ))}
+        </>
+      ) : null}
+
+      {grade.scenarioTags?.length ? (
+        <>
+          <div className="scorehead">Objections tagged (KPI 19 log)</div>
+          {grade.scenarioTags.map((tag, index) => (
+            <div className="kpirow" key={`${tag.scenario}-${index}`}>
+              <span className="mk">
+                {tag.handled === "pass"
+                  ? "✅"
+                  : tag.handled === "partial"
+                    ? "⚠️"
+                    : "❌"}
+              </span>
+              <span>
+                <b>Scenario {tag.scenario}</b> —{" "}
+                {SCENARIOS[tag.scenario - 1]?.title || ""}{" "}
+                <span className="muted">{tag.note || ""}</span>
+              </span>
+            </div>
+          ))}
+        </>
+      ) : null}
+
+      <div className="scorehead">Where the deal died</div>
+      <p className="small red">{grade.died || ""}</p>
+
+      <div className="scorehead">Assigned drills</div>
+      {(grade.drills || []).map((drill, index) => (
+        <div className="assign" key={`${drill.name}-${index}`}>
+          <b>{drill.name}</b> — {drill.sets || ""}
+          <br />
+          <span className="small">Pass: {drill.pass || ""}</span>
+        </div>
+      ))}
+      <p className="small green gradeAdded">✓ Drills added to your dashboard.</p>
+    </Card>
+  );
 }
 
 function GradePage() {
@@ -1712,7 +1788,7 @@ function GradePage() {
 
   async function gradeCall() {
     if (transcript.trim().length < 200) {
-      alert("Paste the full transcript. Short snippets cannot be graded against 22 KPIs.");
+      alert("Paste the full transcript — a real one. Short snippets can’t be graded on 22 KPIs.");
       return;
     }
     setBusy(true);
@@ -1720,16 +1796,23 @@ function GradePage() {
       const text = await aiComplete(gradePrompt(transcript));
       dispatch({ type: "RECORD_GRADE", grade: parseGrade(text) });
     } catch {
-      alert(AI_NOTICE);
+      alert(`Grading didn’t come back. ${AI_NOTICE}`);
     } finally {
       setBusy(false);
+      window.scrollTo(0, 0);
     }
   }
 
   if (state.rank < 2) {
     return (
       <main className="stack">
-        <Locked>Grade My Call unlocks at Closer. Earn the right by passing the Closer exam.</Locked>
+        <div className="card locked center lockedLearn">
+          <div className="lockIcon">🔒</div>
+          <p className="small">
+            Grade My Call unlocks at 🎯 Closer. Earn the right: own the scripts
+            before the scoreboard owns you.
+          </p>
+        </div>
       </main>
     );
   }
@@ -1737,36 +1820,32 @@ function GradePage() {
   return (
     <main className="stack">
       <Card>
-        <h2>Grade My Call</h2>
-        {!aiMayWork() && <Notice>{AI_NOTICE}</Notice>}
+        <h2>📝 Grade My Call</h2>
+        <p className="small muted">
+          Paste your appointment transcript. It gets scored on all 22 KPIs
+          against the scoring definitions — brutal summary, scorecard, where the
+          deal died, and two drills that go straight to your dashboard.
+        </p>
+        {!aiMayWork() && (
+          <Notice>
+            {AI_NOTICE} Alternative: paste the transcript in the 12-Step Project
+            chat and it will be graded the same way.
+          </Notice>
+        )}
         <textarea
           value={transcript}
           onChange={(event) => setTranscript(event.target.value)}
-          placeholder="Paste full appointment transcript"
+          placeholder="Paste the full transcript here…"
         />
-        <button className="btn block" disabled={busy} onClick={gradeCall}>
-          {busy ? "Grading..." : "Grade it"}
+        <button className="btn block gradeButton" disabled={busy} onClick={gradeCall}>
+          Grade it
         </button>
+        {busy && (
+          <Notice>Grading against all 22 KPIs… 30–60 seconds.</Notice>
+        )}
       </Card>
 
-      {grade && (
-        <Card>
-          <h2>Scorecard: {grade.overall ?? "N/A"}%</h2>
-          <p>{grade.summary}</p>
-          {grade.whereDealDied && <Notice><b>Where the deal died:</b> {grade.whereDealDied}</Notice>}
-          {(grade.kpis || []).map((kpi) => (
-            <div className="kpirow" key={kpi.n}>
-              <div className="mk">{kpi.n}</div>
-              <div>
-                <b className={kpi.status === "pass" ? "green" : kpi.status === "fail" ? "red" : "gold"}>
-                  {kpi.status}
-                </b>
-                <p>{kpi.note}</p>
-              </div>
-            </div>
-          ))}
-        </Card>
-      )}
+      {grade && <RenderGrade grade={grade} />}
     </main>
   );
 }
