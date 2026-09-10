@@ -84,27 +84,10 @@ class NotificationService:
             return False
 
     @staticmethod
-    def send_to_admins(notification_type, title, body, data=None):
-        """Send notification to all active admins and managers."""
-        staff = User.objects.filter(is_staff=True, is_active=True)
-        for user in staff:
-            NotificationService.send_notification(
-                user=user,
-                notification_type=notification_type,
-                title=title,
-                body=body,
-                data=data,
-            )
-
-    @staticmethod
-    def send_to_managers(notification_type, title, body, data=None):
-        """Send notification to managers only (not superusers)."""
-        managers = User.objects.filter(
-            is_staff=True,
-            is_superuser=False,
-            is_active=True
-        )
-        for user in managers:
+    def send_to_players(notification_type, title, body, data=None):
+        """Send notification to all active player accounts."""
+        players = User.objects.filter(is_superuser=False, is_active=True)
+        for user in players:
             NotificationService.send_notification(
                 user=user,
                 notification_type=notification_type,
@@ -128,16 +111,16 @@ class NotificationTemplates:
             user=user,
             notification_type=NotificationType.WELCOME,
             title='Welcome to Red Panda Academy',
-            body=f'Hi {user.full_name or user.email}, your account is ready. Complete your profile to get started.',
+            body=f'Hi {user.full_name or user.email}, your player account is ready. Start your learning journey and keep pushing your progress.',
             priority=NotificationPriority.NORMAL,
         )
 
     @staticmethod
     def new_user_joined(user):
-        NotificationService.send_to_admins(
-            notification_type='user_joined',
-            title='New user joined',
-            body=f'{user.full_name or user.email} created an account.',
+        NotificationService.send_to_players(
+            notification_type='player_joined',
+            title='A new player joined Red Panda Academy',
+            body=f'{user.full_name or user.email} just joined the platform. Welcome them to the community!',
             data={'user_id': str(user.id), 'email': user.email},
             priority=NotificationPriority.NORMAL,
         )
@@ -147,8 +130,8 @@ class NotificationTemplates:
         NotificationService.send_notification(
             user=user,
             notification_type=NotificationType.PASSWORD_UPDATED,
-            title='Password Reset Successfully',
-            body="Your password was reset. If this wasn't you, contact your administrator immediately.",
+            title='Password reset successful',
+            body="Your password has been reset successfully. If this wasn't you, contact support immediately.",
             priority=NotificationPriority.HIGH,
         )
 
@@ -157,8 +140,8 @@ class NotificationTemplates:
         NotificationService.send_notification(
             user=user,
             notification_type=NotificationType.PASSWORD_CHANGED,
-            title='Password Changed',
-            body="Your password was changed successfully. If this wasn't you, contact your administrator.",
+            title='Password changed',
+            body="Your password was changed successfully. If this wasn't you, contact support right away.",
             priority=NotificationPriority.HIGH,
         )
 

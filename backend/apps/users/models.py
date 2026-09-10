@@ -75,22 +75,16 @@ class User(AbstractUser):
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
 
-    # Role helpers
+    # Platform roles: admin is only Django superuser; everyone else is a player.
     @property
     def role(self):
         if self.is_superuser:
             return 'admin'
-        elif self.is_staff:
-            return 'manager'
-        return 'employee'
+        return 'player'
 
     @property
-    def is_employee(self):
-        return not self.is_staff and not self.is_superuser
-
-    @property
-    def is_manager(self):
-        return self.is_staff and not self.is_superuser
+    def is_player(self):
+        return not self.is_superuser
 
     @property
     def is_admin(self):

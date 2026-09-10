@@ -8,11 +8,11 @@ logger = logging.getLogger(__name__)
 
 @shared_task(bind=True, max_retries=3) # Task will retry up to 3 times if it fails.
 def send_registration_otp_email(self, email, otp, full_name):
-    subject = 'Adelaide Plumbing and Gasfitting - Registration OTP'
+    subject = 'Red Panda Academy - Registration OTP'
     message = f'''
     Hi {full_name},
 
-    Thank you for registering with Adelaide Plumbing and Gasfitting!
+    Thank you for joining Red Panda Academy!
 
     Your OTP for email verification is: {otp}
 
@@ -21,7 +21,7 @@ def send_registration_otp_email(self, email, otp, full_name):
     If you didn't request this registration, please ignore this email.
 
     Best regards,
-    Adelaide Plumbing and Gasfitting Team
+    Red Panda Academy Team
         '''
         
     try:
@@ -50,7 +50,7 @@ def send_password_reset_otp_email(self, email, otp, full_name):
     """
     Send OTP email for password reset
     """
-    subject = 'Adelaide Plumbing and Gasfitting - Password Reset OTP'
+    subject = 'Red Panda Academy - Password Reset OTP'
     message = f'''
     Hi {full_name},
 
@@ -63,7 +63,7 @@ def send_password_reset_otp_email(self, email, otp, full_name):
     If you didn't request this password reset, please ignore this email and ensure your account is secure.
 
     Best regards,
-    Adelaide Plumbing and Gasfitting Team
+    Red Panda Academy Team
     '''
     
     try:
@@ -84,22 +84,22 @@ def send_password_reset_otp_email(self, email, otp, full_name):
 def send_welcome_email(email, full_name):
     # Send welcome email after successful registration
     
-    subject = 'Welcome to Adelaide Plumbing and Gasfitting!'
+    subject = 'Welcome to Red Panda Academy!'
     message = f'''
     Hi {full_name},
 
-    Welcome to Adelaide Plumbing and Gasfitting!
+    Welcome to Red Panda Academy!
 
-    Your account has been successfully created. You can now:
-    - View your assigned jobs
-    - Complete safety checks
-    - Manage your daily schedule
-    - And much more!
+    Your player account has been successfully created. You can now:
+    - Explore your training modules
+    - Track your progress
+    - Complete practice activities
+    - Stay connected with updates from the academy
 
     Please complete your profile setup to get started.
 
     Best regards,
-    Adelaide Plumbing and Gasfitting Team
+    Red Panda Academy Team
     '''
     
     try:
