@@ -30,6 +30,7 @@ class InitiateRegistrationView(APIView):
     serializer_class = InitiateRegistrationSerializer
     
     @extend_schema(
+        tags=['auth'],
         request=InitiateRegistrationSerializer,
         summary="Initiate user registration",
         description='Send OTP to email for user registration verification'
@@ -71,6 +72,7 @@ class VerifyRegistrationOTPView(APIView):
     serializer_class = VerifyRegistrationOTPSerializer
     
     @extend_schema(
+        tags=['auth'],
         request=VerifyRegistrationOTPSerializer,
         summary="Verify registration OTP",
         description="Verifies the OTP sent during registration and completes user registration."
@@ -129,6 +131,7 @@ class InitiatePasswordResetView(APIView):
     serializer_class = InitiatePasswordResetSerializer
     
     @extend_schema(
+        tags=['auth'],
         request=InitiatePasswordResetSerializer,
         summary='Initiate password reset',
         description='Send OTP to email for password reset'
@@ -160,6 +163,7 @@ class VerifyPasswordResetOTPView(APIView):
     serializer_class = VerifyPasswordResetOTPSerializer
     
     @extend_schema(
+        tags=['auth'],
         request=VerifyPasswordResetOTPSerializer,
         summary='Verify password reset OTP',
         description='Verify OTP and receive reset token for password change'
@@ -199,6 +203,7 @@ class ResetPasswordView(APIView):
     serializer_class = ResetPasswordSerializer
     
     @extend_schema(
+        tags=['auth'],
         request=ResetPasswordSerializer,
         summary='Reset password',
         description='Reset password using the reset token'
@@ -248,6 +253,7 @@ class ResetPasswordView(APIView):
 
 
 @extend_schema(
+    tags=['auth'],
     summary="User login",
     description="Authenticate user and return access and refresh tokens.",
     request=UserLoginSerializer,
@@ -282,6 +288,7 @@ class UserLoginView(APIView):
         
 
 @extend_schema(
+    tags=['auth'],
     summary="User logout",
     description="Logout user by blacklisting refresh token and clearing session.",
     responses={205: OpenApiResponse(description="Logged out successfully")}
@@ -315,6 +322,7 @@ class UserLogoutView(APIView):
             
 
 @extend_schema(
+    tags=['auth'],
     summary="Change password",
     description="Change password for authenticated user.",
     request=ChangePasswordSerializer
@@ -345,23 +353,27 @@ class ChangePasswordView(APIView):
            
 @extend_schema_view(
     get=extend_schema(
+        tags=['users'],
         summary="Retrieve my profile",
         description="Retrieve currently authenticated user's profile.",
         responses=UserProfileSerializer,
     ),
     put=extend_schema(
+        tags=['users'],
         summary="Update my profile",
         description="Fully update your profile.",
         request=UserProfileSerializer,
         responses=UserProfileSerializer,
     ),
     patch=extend_schema(
+        tags=['users'],
         summary="Partially update my profile",
         description="Partially update your profile fields.",
         request=UserProfileSerializer,
         responses=UserProfileSerializer,
     ),
     delete=extend_schema(
+        tags=['users'],
         summary="Delete my account",
         description="Delete currently authenticated user's account.",
         responses={204: OpenApiResponse(description="Account deleted")},
@@ -382,18 +394,21 @@ class MyProfileView(RetrieveUpdateDestroyAPIView):
 #####################################################################################
 
 
-class GoogleLoginMobileView(APIView):
-    permission_classes = [AllowAny]
-    serializer_class = GoogleOAuthSerializer
-    
-    @extend_schema(
+@extend_schema_view(
+    post=extend_schema(
+        tags=['auth'],
         summary="Google OAuth Mobile Login",
         description="Handle Google OAuth mobile login and return authentication tokens.",
         responses={
             200: OpenApiResponse(description="Google login successful"),
             400: OpenApiResponse(description="OAuth validation failed"),
         },
-    )
+    ),
+)
+class GoogleLoginMobileView(APIView):
+    permission_classes = [AllowAny]
+    serializer_class = GoogleOAuthSerializer
+    
     @method_decorator(ratelimit(key='ip', rate="120/h", method="POST", block=True))
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
@@ -408,6 +423,7 @@ class GoogleLoginMobileView(APIView):
 
 
 @extend_schema(
+    tags=['auth'],
     summary="Apple mobile login",
     description="Accepts Apple ID token and returns JWT tokens.",
     responses={200: OpenApiResponse(description="Login successful")}
