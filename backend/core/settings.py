@@ -47,6 +47,9 @@ INSTALLED_APPS = [
     'apps.users',
     'apps.api',
     'apps.notifications',
+    'apps.progression',
+    'apps.protocol',
+    'apps.grades',
 ]
 
 MIDDLEWARE = [
