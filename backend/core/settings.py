@@ -161,21 +161,42 @@ else:
 
 
 # Redis Configuration
-REDIS_HOST = os.getenv('REDIS_HOST', 'redis')
+REDIS_HOST = os.getenv('REDIS_HOST', 'localhost')
 REDIS_PORT = os.getenv('REDIS_PORT', '6379')
 
+# Cache configuration with fallback for development
+# In production, Redis is required. In development, falls back to local memory cache.
+_REDIS_AVAILABLE = False
+try:
+    import redis as redis_lib
+    _redis_client = redis_lib.Redis(host=REDIS_HOST, port=int(REDIS_PORT), socket_connect_timeout=1)
+    _redis_client.ping()
+    _REDIS_AVAILABLE = True
+except Exception:
+    pass
 
-CACHES = {
-    'default': {
-        'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': f'redis://{REDIS_HOST}:{REDIS_PORT}/1', # conn url, [/1 -> Redis db no. 1]
-        'OPTIONS': {
-            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-        },
-        'KEY_PREFIX': 'adelaideplumbing',   # Adds a prefix to every cache key.
-        'TIMEOUT': 300,  # Default cache expiry time = 300s (5 mins).
+if _REDIS_AVAILABLE:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django_redis.cache.RedisCache',
+            'LOCATION': f'redis://{REDIS_HOST}:{REDIS_PORT}/1',
+            'OPTIONS': {
+                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+                'CONNECTION_POOL_KWARGS': {'health_check_interval': 30},
+            },
+            'KEY_PREFIX': 'redpandaacademy',
+            'TIMEOUT': 300,
+        }
     }
-}
+else:
+    # Fallback to local memory cache for development without Redis
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'redpandaacademy-dev',
+            'TIMEOUT': 300,
+        }
+    }
 
 
 
@@ -406,27 +427,11 @@ CELERY_TASK_TRACK_STARTED = True  # Celery tracks when a task starts executing.
 CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 minutes
 
 
-# ── And the Redis cache section ───────────────────────────────────────────
-_REDIS_HOST = os.environ.get('REDIS_HOST') or 'localhost'
-_REDIS_PORT = os.environ.get('REDIS_PORT') or '6379'
-
-CACHES = {
-    'default': {
-        'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': f'redis://{_REDIS_HOST}:{_REDIS_PORT}/1',
-        'OPTIONS': {
-            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-        },
-        'KEY_PREFIX': 'autointel',
-        'TIMEOUT': 300,
-    }
-}
-
 CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
         'CONFIG': {
-            "hosts": [(_REDIS_HOST, int(_REDIS_PORT))],
+            "hosts": [(os.environ.get('REDIS_HOST') or 'localhost', int(os.environ.get('REDIS_PORT') or '6379'))],
         },
     },
 }

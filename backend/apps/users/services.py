@@ -61,7 +61,7 @@ class RegistrationService:
         cache.set(cache_key, registration_data, settings.OTP_EXPIRY_SECONDS)
 
         try:
-            from users.tasks import send_registration_otp_email
+            from apps.users.tasks import send_registration_otp_email
             send_registration_otp_email.delay(email, otp, username)
         except Exception as e:
             import logging

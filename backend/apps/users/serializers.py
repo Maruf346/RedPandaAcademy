@@ -389,7 +389,7 @@ class GoogleOAuthSerializer(serializers.Serializer):
             
             try: 
                 # Send welcome email asynchronously
-                from users.tasks import send_welcome_email
+                from apps.users.tasks import send_welcome_email
                 send_welcome_email.delay(user.email, user.full_name)
                 
                 # Send welcome notification
@@ -475,7 +475,7 @@ class AppleOAuthSerializer(serializers.Serializer):
             
             try: 
                 # Send welcome email asynchronously
-                from users.tasks import send_welcome_email
+                from apps.users.tasks import send_welcome_email
                 send_welcome_email.delay(user.email, user.full_name)
                 
                 # Send welcome notification

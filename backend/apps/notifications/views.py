@@ -45,6 +45,7 @@ logger = logging.getLogger(__name__)
 class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated]
     serializer_class = NotificationSerializer
+    queryset = Notification.objects.all()  # Used for schema generation; filtered in get_queryset
     filterset_fields = ['is_read', 'notification_type', 'priority']
     ordering_fields = ['created_at']
     ordering = ['-created_at']
