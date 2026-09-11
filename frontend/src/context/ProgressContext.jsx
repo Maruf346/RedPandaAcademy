@@ -1,5 +1,7 @@
-import { createContext, useContext, useEffect, useMemo, useReducer } from "react";
+import { createContext, useContext, useEffect, useMemo, useReducer, useRef, useState } from "react";
+import { api } from "../lib/api.js";
 import { loadStoredProgress, saveStoredProgress } from "../lib/storage.js";
+import { useAuth } from "./AuthContext.jsx";
 
 const ProgressContext = createContext(null);
 
@@ -46,8 +48,26 @@ function snapshot(state) {
     kpiStats: state.kpiStats,
     scenStats: state.scenStats,
     customDone: state.customDone,
-    proto: state.proto
+    proto: state.proto,
+    lastGrade: state.lastGrade
   };
+}
+
+function isEmptySnapshot(data = {}) {
+  const proto = data.proto || {};
+  return (
+    !(data.rank || 0) &&
+    !Object.keys(data.best || {}).length &&
+    !Object.keys(data.cards || {}).length &&
+    !Object.keys(data.drills || {}).length &&
+    !(data.assignments || []).length &&
+    !Object.keys(data.kpiStats || {}).length &&
+    !Object.keys(data.scenStats || {}).length &&
+    !(data.customDone || 0) &&
+    (proto.phase || 1) <= 1 &&
+    !(proto.p1 || []).length &&
+    !Object.keys(proto.anchors || {}).length
+  );
 }
 
 function bumpBucket(bucket, key, field) {
@@ -223,15 +243,65 @@ function reducer(state, action) {
 }
 
 export function ProgressProvider({ children }) {
+  const { user, ready } = useAuth();
   const [state, dispatch] = useReducer(
     reducer,
     undefined,
     () => normalize(loadStoredProgress() || {})
   );
+  const [syncEnabled, setSyncEnabled] = useState(false);
+  const stateRef = useRef(state);
+
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
 
   useEffect(() => {
     saveStoredProgress(snapshot(state));
   }, [state]);
+
+  useEffect(() => {
+    if (!ready) return undefined;
+    let cancelled = false;
+
+    async function hydrateFromServer() {
+      setSyncEnabled(false);
+      if (!user) {
+        if (!cancelled) setSyncEnabled(false);
+        return;
+      }
+      try {
+        const remote = await api("/progression/snapshot/");
+        if (cancelled) return;
+        const local = snapshot(stateRef.current);
+        if (!isEmptySnapshot(remote)) {
+          dispatch({ type: "IMPORT", payload: remote });
+        } else if (!isEmptySnapshot(local)) {
+          await api("/progression/snapshot/", { method: "PUT", body: local });
+        }
+      } catch {
+        // Stay on localStorage if the API is down.
+      } finally {
+        if (!cancelled) setSyncEnabled(true);
+      }
+    }
+
+    hydrateFromServer();
+    return () => {
+      cancelled = true;
+    };
+  }, [ready, user]);
+
+  useEffect(() => {
+    if (!user || !syncEnabled) return undefined;
+    const timer = window.setTimeout(() => {
+      api("/progression/snapshot/", {
+        method: "PUT",
+        body: snapshot(state)
+      }).catch(() => {});
+    }, 700);
+    return () => window.clearTimeout(timer);
+  }, [state, user, syncEnabled]);
 
   const value = useMemo(
     () => ({ state, dispatch, snapshot: () => snapshot(state) }),

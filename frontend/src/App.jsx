@@ -31,6 +31,9 @@ import {
   STEPS
 } from "./data/knowledge.js";
 import { ProgressProvider, useProgress } from "./context/ProgressContext.jsx";
+import { AuthProvider, useAuth } from "./context/AuthContext.jsx";
+import AccountPage from "./pages/AccountPage.jsx";
+import ProfilePage from "./pages/ProfilePage.jsx";
 import { AI_NOTICE, aiComplete, aiMayWork } from "./lib/ai.js";
 import { decodeProgress, encodeProgress } from "./lib/progressCode.js";
 import { canUseStorage } from "./lib/storage.js";
@@ -139,6 +142,7 @@ function Locked({ children }) {
 
 function Shell() {
   const { state } = useProgress();
+  const { user } = useAuth();
   const currentRank = RANKS[state.rank] || RANKS[0];
 
   return (
@@ -150,13 +154,20 @@ function Shell() {
             <h1>Red Panda Closer Academy</h1>
             <p>Red Panda Roofing · Turn average reps into great ones</p>
           </div>
-          <span className="rankchip">
-            <span aria-hidden="true">{currentRank.em}</span> {currentRank.name}
-          </span>
+          <div className="topMeta">
+            <span className="rankchip">
+              <span aria-hidden="true">{currentRank.em}</span> {currentRank.name}
+            </span>
+            <NavLink to={user ? "/profile" : "/account"} className="accountchip">
+              {user ? user.full_name || user.email : "Sign in"}
+            </NavLink>
+          </div>
         </header>
 
         <Routes>
           <Route path="/" element={<HomePage />} />
+          <Route path="/account" element={<AccountPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
           <Route path="/learn" element={<Navigate to="/learn/steps" replace />} />
           <Route path="/learn/:tab" element={<LearnPage />} />
           <Route path="/drill" element={<Navigate to="/drill/cards" replace />} />
@@ -191,6 +202,7 @@ function Shell() {
 
 function HomePage() {
   const { state, dispatch, snapshot } = useProgress();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [code, setCode] = useState("");
   const [codeMode, setCodeMode] = useState("");
@@ -395,14 +407,23 @@ function HomePage() {
 
       <Card>
         <h2>💾 Progress</h2>
-        {storageOn ? (
+        {user ? (
+          <>
+            <div className="small green">
+              ✓ Cloud save is ON — signed in as {user.email}.
+            </div>
+            <div className="small muted progressHelp">
+              This device still keeps a local copy. Backup codes remain the
+              offline fallback.
+            </div>
+          </>
+        ) : storageOn ? (
           <>
             <div className="small green">
               ✓ Auto-save is ON — your progress stays on this device.
             </div>
             <div className="small muted progressHelp">
-              Getting a new phone? Grab a backup code here and paste it on the
-              new device.
+              Sign in to save rank across phones. Or grab a backup code below.
             </div>
           </>
         ) : (
@@ -1794,7 +1815,7 @@ function GradePage() {
     setBusy(true);
     try {
       const text = await aiComplete(gradePrompt(transcript));
-      dispatch({ type: "RECORD_GRADE", grade: parseGrade(text) });
+      dispatch({ type: "RECORD_GRADE", grade: { ...parseGrade(text), transcript } });
     } catch {
       alert(`Grading didn’t come back. ${AI_NOTICE}`);
     } finally {
@@ -1852,8 +1873,10 @@ function GradePage() {
 
 export default function App() {
   return (
-    <ProgressProvider>
-      <Shell />
-    </ProgressProvider>
+    <AuthProvider>
+      <ProgressProvider>
+        <Shell />
+      </ProgressProvider>
+    </AuthProvider>
   );
 }
