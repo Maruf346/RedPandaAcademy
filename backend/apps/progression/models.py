@@ -72,7 +72,11 @@ class Assignment(models.Model):
     
     name = models.CharField(max_length=255, help_text="Assignment title")
     why = models.TextField(blank=True, help_text="Why this was assigned")
-    sets = models.IntegerField(default=2, help_text="Number of sets to complete")
+    sets = models.CharField(
+        max_length=255,
+        default="2",
+        help_text="Sets to complete, or a study instruction from a missed quiz",
+    )
     pass_condition = models.TextField(blank=True, help_text="Pass condition")
     done = models.BooleanField(default=False, help_text="Mark as complete")
     

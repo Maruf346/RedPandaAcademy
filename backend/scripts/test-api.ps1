@@ -99,7 +99,7 @@ try {
 # Test 8: Get protocol state
 Write-Host "Test 8: Get protocol state" -ForegroundColor Yellow
 try {
-    $response = Invoke-RestMethod -Uri "$BASE_URL/protocol/protocol/" -Method Get -Headers $headers -ErrorAction Stop
+    $response = Invoke-RestMethod -Uri "$BASE_URL/protocol/" -Method Get -Headers $headers -ErrorAction Stop
     Write-Host "  ✓ Protocol endpoint works" -ForegroundColor Green
     Write-Host "  Phase: $($response.phase)" -ForegroundColor DarkGray
 } catch {
@@ -110,7 +110,7 @@ try {
 Write-Host "Test 9: Log recall session" -ForegroundColor Yellow
 try {
     $recallBody = @{ date = (Get-Date).ToDateString() } | ConvertTo-Json
-    $response = Invoke-RestMethod -Uri "$BASE_URL/protocol/protocol/log-recall/" -Method Post -Headers $headers -Body $recallBody -ContentType "application/json" -ErrorAction Stop
+    $response = Invoke-RestMethod -Uri "$BASE_URL/protocol/log-recall/" -Method Post -Headers $headers -Body $recallBody -ContentType "application/json" -ErrorAction Stop
     Write-Host "  ✓ Recall logged" -ForegroundColor Green
     Write-Host "  P1 dates: $($response.p1_dates.Count)" -ForegroundColor DarkGray
 } catch {

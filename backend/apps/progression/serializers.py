@@ -3,14 +3,9 @@ from .models import (
     UserProgress, Assignment, UserCard, UserDrill,
     UserKpiStat, UserScenarioStat
 )
-from django.contrib.auth import get_user_model
-
-User = get_user_model()
 
 
 class UserProgressSerializer(serializers.ModelSerializer):
-    """Serializer for UserProgress model."""
-    
     class Meta:
         model = UserProgress
         fields = [
@@ -21,8 +16,6 @@ class UserProgressSerializer(serializers.ModelSerializer):
 
 
 class AssignmentSerializer(serializers.ModelSerializer):
-    """Serializer for Assignment model."""
-    
     class Meta:
         model = Assignment
         fields = [
@@ -31,10 +24,21 @@ class AssignmentSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'created_at', 'completed_at']
 
+    def to_internal_value(self, data):
+        data = dict(data)
+        if data.get('pass_condition') in (None, '') and data.get('pass') is not None:
+            data['pass_condition'] = data.get('pass')
+        if 'sets' in data and data['sets'] is not None:
+            data['sets'] = str(data['sets'])
+        return super().to_internal_value(data)
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data['pass'] = instance.pass_condition
+        return data
+
 
 class UserCardSerializer(serializers.ModelSerializer):
-    """Serializer for UserCard model."""
-    
     class Meta:
         model = UserCard
         fields = ['id', 'card_index', 'mastery', 'created_at', 'updated_at']
@@ -42,8 +46,6 @@ class UserCardSerializer(serializers.ModelSerializer):
 
 
 class UserDrillSerializer(serializers.ModelSerializer):
-    """Serializer for UserDrill model."""
-    
     class Meta:
         model = UserDrill
         fields = ['id', 'drill_number', 'sets_completed', 'created_at', 'updated_at']
@@ -51,8 +53,6 @@ class UserDrillSerializer(serializers.ModelSerializer):
 
 
 class UserKpiStatSerializer(serializers.ModelSerializer):
-    """Serializer for UserKpiStat model."""
-    
     class Meta:
         model = UserKpiStat
         fields = [
@@ -63,8 +63,6 @@ class UserKpiStatSerializer(serializers.ModelSerializer):
 
 
 class UserScenarioStatSerializer(serializers.ModelSerializer):
-    """Serializer for UserScenarioStat model."""
-    
     class Meta:
         model = UserScenarioStat
         fields = [
@@ -74,24 +72,50 @@ class UserScenarioStatSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'created_at', 'updated_at']
 
 
+class SnapshotAssignmentSerializer(serializers.Serializer):
+    name = serializers.CharField(max_length=255)
+    why = serializers.CharField(required=False, allow_blank=True, default='')
+    sets = serializers.CharField(required=False, allow_blank=True, default='2')
+    done = serializers.BooleanField(required=False, default=False)
+    pass_condition = serializers.CharField(required=False, allow_blank=True, default='')
+
+    def to_internal_value(self, data):
+        if not isinstance(data, dict):
+            data = {}
+        else:
+            data = dict(data)
+        if data.get('pass_condition') in (None, '') and data.get('pass') is not None:
+            data['pass_condition'] = data.get('pass')
+        if 'sets' in data and data['sets'] is not None:
+            data['sets'] = str(data['sets'])
+        return super().to_internal_value(data)
+
+    def to_representation(self, instance):
+        if hasattr(instance, 'name'):
+            return {
+                'name': instance.name,
+                'why': instance.why,
+                'sets': instance.sets,
+                'pass': instance.pass_condition,
+                'done': instance.done,
+            }
+        data = dict(instance)
+        data.setdefault('pass', data.get('pass_condition', ''))
+        return data
+
+
 class ProgressSnapshotSerializer(serializers.Serializer):
     """
     Full progress snapshot for frontend sync.
-    Matches the frontend's ProgressContext state shape.
+    Matches ProgressContext state (camelCase).
     """
-    rank = serializers.IntegerField(default=0)
-    best = serializers.JSONField(default=dict)
-    cards = serializers.JSONField(default=dict, help_text="Card mastery by index {index: mastery}")
-    drills = serializers.JSONField(default=dict, help_text="Drill sets by drill number {number: count}")
-    assignments = AssignmentSerializer(many=True, default=list)
-    kpiStats = serializers.JSONField(default=dict, help_text="KPI stats by number")
-    scenStats = serializers.JSONField(default=dict, help_text="Scenario stats by number")
-    customDone = serializers.IntegerField(default=0)
-    proto = serializers.JSONField(default=dict, help_text="Protocol state")
-    lastGrade = serializers.JSONField(default=dict, allow_null=True, help_text="Last call grade")
-    
-    def create(self, validated_data):
-        return validated_data
-    
-    def update(self, instance, validated_data):
-        return validated_data
+    rank = serializers.IntegerField(required=False, min_value=0, max_value=3)
+    best = serializers.JSONField(required=False)
+    cards = serializers.JSONField(required=False)
+    drills = serializers.JSONField(required=False)
+    assignments = SnapshotAssignmentSerializer(many=True, required=False)
+    kpiStats = serializers.JSONField(required=False)
+    scenStats = serializers.JSONField(required=False)
+    customDone = serializers.IntegerField(required=False, min_value=0)
+    proto = serializers.JSONField(required=False)
+    lastGrade = serializers.JSONField(required=False, allow_null=True)

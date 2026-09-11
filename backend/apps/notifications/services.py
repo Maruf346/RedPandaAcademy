@@ -117,13 +117,16 @@ class NotificationTemplates:
 
     @staticmethod
     def new_user_joined(user):
-        NotificationService.send_to_players(
-            notification_type='player_joined',
-            title='A new player joined Red Panda Academy',
-            body=f'{user.full_name or user.email} just joined the platform. Welcome them to the community!',
-            data={'user_id': str(user.id), 'email': user.email},
-            priority=NotificationPriority.NORMAL,
-        )
+        admins = User.objects.filter(is_superuser=True, is_active=True)
+        for admin in admins:
+            NotificationService.send_notification(
+                user=admin,
+                notification_type=NotificationType.PLAYER_JOINED,
+                title='A new player joined Red Panda Academy',
+                body=f'{user.full_name or user.email} just joined the platform.',
+                data={'user_id': str(user.id), 'email': user.email},
+                priority=NotificationPriority.NORMAL,
+            )
 
     @staticmethod
     def password_updated(user):

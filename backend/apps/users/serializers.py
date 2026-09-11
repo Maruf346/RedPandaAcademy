@@ -362,7 +362,7 @@ class GoogleOAuthSerializer(serializers.Serializer):
             email = email,
             defaults={
                 'full_name': google_user.get("name") or f"{first_name} {last_name}".strip(),
-                'is_active': False,
+                'is_active': True,
                 'provider': AuthProvider.GOOGLE,
                 'provider_id': provider_id
             },
@@ -462,7 +462,7 @@ class AppleOAuthSerializer(serializers.Serializer):
             email=email,
             defaults={
                 'full_name': full_name,
-                'is_active': False,
+                'is_active': True,
                 'provider': AuthProvider.APPLE,
                 'provider_id': provider_id
             }

@@ -8,6 +8,7 @@ from django.conf import settings
 from apps.notifications.views import NotificationViewSet
 from apps.progression.views import (
     UserProgressView,
+    ProgressSnapshotView,
     AssignmentViewSet,
     UserCardViewSet,
     UserDrillViewSet,
@@ -56,16 +57,15 @@ urlpatterns = [
     # User auth endpoints (existing path-based routes)
     path('users/', include('apps.users.urls')),
 
-    # Progression - single object views
+    path('progression/snapshot/', ProgressSnapshotView.as_view(), name='progress-snapshot'),
     path('progression/progress/', UserProgressView.as_view(), name='progress'),
 
-    # Protocol - single object views
-    path('protocol/protocol/', UserProtocolView.as_view(), name='protocol'),
-    path('protocol/protocol/log-recall/', LogRecallView.as_view(), name='protocol-log-recall'),
-    path('protocol/protocol/inc-anchor/', IncAnchorView.as_view(), name='protocol-inc-anchor'),
-    path('protocol/protocol/set-d12/', SetD12View.as_view(), name='protocol-set-d12'),
-    path('protocol/protocol/log-weekly/', LogWeeklyView.as_view(), name='protocol-log-weekly'),
-    path('protocol/protocol/advance-phase/', AdvancePhaseView.as_view(), name='protocol-advance-phase'),
+    path('protocol/', UserProtocolView.as_view(), name='protocol'),
+    path('protocol/log-recall/', LogRecallView.as_view(), name='protocol-log-recall'),
+    path('protocol/inc-anchor/', IncAnchorView.as_view(), name='protocol-inc-anchor'),
+    path('protocol/set-d12/', SetD12View.as_view(), name='protocol-set-d12'),
+    path('protocol/log-weekly/', LogWeeklyView.as_view(), name='protocol-log-weekly'),
+    path('protocol/advance-phase/', AdvancePhaseView.as_view(), name='protocol-advance-phase'),
 
     # Notification and other viewsets
     path('', include(router.urls)),

@@ -9,7 +9,7 @@ class NotificationType(models.TextChoices):
     # Auth
     WELCOME = 'welcome', 'Welcome'
     PASSWORD_UPDATED = 'pass_updated', 'Password Updated'
-    PASSWORD_CHANGED = 'pass_changed', 'Password Changed'
+    PLAYER_JOINED = 'player_joined', 'Player Joined'
 
     
 

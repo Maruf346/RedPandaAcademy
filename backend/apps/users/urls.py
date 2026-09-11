@@ -1,6 +1,14 @@
 from django.urls import path, include
 from .views import *
 from rest_framework.routers import DefaultRouter
+from rest_framework_simplejwt.views import TokenRefreshView
+from drf_spectacular.utils import extend_schema
+
+
+class TaggedTokenRefreshView(TokenRefreshView):
+    @extend_schema(tags=['auth'], summary='Refresh access token')
+    def post(self, request, *args, **kwargs):
+        return super().post(request, *args, **kwargs)
 
 
 router = DefaultRouter()
@@ -30,7 +38,9 @@ urlpatterns = [
     
     # User endpoints
     path('login/', UserLoginView.as_view(), name='login'),
+    path('token/refresh/', TaggedTokenRefreshView.as_view(), name='token-refresh'),
     path('logout/', UserLogoutView.as_view(), name='logout'),
     path('password/change/', ChangePasswordView.as_view(), name='password-change'),
+    path('me/', MyProfileView.as_view(), name='my-profile'),
  
 ]

@@ -59,7 +59,7 @@ class CallGrade(models.Model):
     
     # Grade summary
     summary = models.TextField(blank=True, help_text="One-sentence brutal summary")
-    died = models.CharField(max_length=255, blank=True, help_text="KPI X at Step Y — why")
+    died = models.TextField(blank=True, help_text="KPI X at Step Y — why")
     
     # Scorecard: [{n, score, note}]
     scorecard = models.JSONField(

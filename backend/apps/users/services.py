@@ -17,8 +17,16 @@ class OTPService:
     
     @staticmethod
     def store_otp(cache_key, otp, expiry_seconds):
-        # stores OTP in Redis
+        OTPService._require_durable_cache()
         cache.set(cache_key, otp, expiry_seconds)
+        
+    @staticmethod
+    def _require_durable_cache():
+        backend = settings.CACHES['default']['BACKEND']
+        if not settings.DEBUG and 'locmem' in backend.lower():
+            raise RuntimeError(
+                'Production OTP storage requires Redis. LocMem cache is not allowed when DEBUG=False.'
+            )
         
     @staticmethod
     def verify_otp(cache_key, provided_otp):
@@ -58,6 +66,7 @@ class RegistrationService:
             'password': make_password(password),
             'otp': otp
         }
+        OTPService._require_durable_cache()
         cache.set(cache_key, registration_data, settings.OTP_EXPIRY_SECONDS)
 
         try:
@@ -136,6 +145,7 @@ class PasswordResetService:
         
         # Store OTP in Redis
         cache_key = f'password_reset_otp:{email}'
+        OTPService._require_durable_cache()
         cache.set(cache_key, otp, settings.PASSWORD_RESET_OTP_EXPIRY_SECONDS)
         
         # Send OTP email

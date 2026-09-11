@@ -88,37 +88,37 @@ def main():
     print("\n3. Protocol API")
     
     # Get protocol
-    r = requests.get(f'{BASE_URL}/protocol/protocol/', headers=headers)
-    print(f"  GET /api/protocol/protocol/ -> {r.status_code}")
+    r = requests.get(f'{BASE_URL}/protocol/', headers=headers)
+    print(f"  GET /api/protocol/ -> {r.status_code}")
     assert r.status_code == 200
     data = r.json()
     print(f"    phase={data['phase']}, p1_dates={data['p1_dates']}")
     
     # Log recall
-    r = requests.post(f'{BASE_URL}/protocol/protocol/log-recall/',
+    r = requests.post(f'{BASE_URL}/protocol/log-recall/',
                       headers=headers, 
                       data=json.dumps({'date': 'Thu Sep 11 2026'}))
-    print(f"  POST /api/protocol/protocol/log-recall/ -> {r.status_code}")
+    print(f"  POST /api/protocol/log-recall/ -> {r.status_code}")
     assert r.status_code == 200
     data = r.json()
     assert 'Thu Sep 11 2026' in data['p1_dates']
     print(f"    P1 dates: {data['p1_dates']}")
     
     # Increment anchor
-    r = requests.post(f'{BASE_URL}/protocol/protocol/inc-anchor/',
+    r = requests.post(f'{BASE_URL}/protocol/inc-anchor/',
                       headers=headers, 
                       data=json.dumps({'anchor_index': 0}))
-    print(f"  POST /api/protocol/protocol/inc-anchor/ -> {r.status_code}")
+    print(f"  POST /api/protocol/inc-anchor/ -> {r.status_code}")
     assert r.status_code == 200
     data = r.json()
     assert data['anchor_reps']['0'] == 1
     print(f"    Anchor reps: {data['anchor_reps']}")
     
     # Advance phase
-    r = requests.post(f'{BASE_URL}/protocol/protocol/advance-phase/',
+    r = requests.post(f'{BASE_URL}/protocol/advance-phase/',
                       headers=headers, 
                       data=json.dumps({}))
-    print(f"  POST /api/protocol/protocol/advance-phase/ -> {r.status_code}")
+    print(f"  POST /api/protocol/advance-phase/ -> {r.status_code}")
     assert r.status_code == 200
     data = r.json()
     print(f"    Phase: {data['phase']}")

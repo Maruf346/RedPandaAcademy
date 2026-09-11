@@ -17,7 +17,13 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-key-change-me')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1,testserver').split(',')
+    if host.strip()
+]
+if 'testserver' not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append('testserver')
 
 
 # Application definition
@@ -35,6 +41,7 @@ INSTALLED_APPS = [
     
     # Third-party apps
     'rest_framework',
+    'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
     'drf_spectacular',
     'django_filters',
@@ -118,18 +125,7 @@ WEBSOCKET_ALLOWED_ORIGINS = [
     if origin.strip()
 ]
 
-# CORS configs
-CSRF_TRUSTED_ORIGINS = [
-    f"http://{host}" for host in ALLOWED_HOSTS if host not in ('localhost', '127.0.0.1', '')
-] + [
-    f"https://{host}" for host in ALLOWED_HOSTS if host not in ('localhost', '127.0.0.1', '')
-] + [
-    "http://plumbers-dashboard.s3-website.eu-north-1.amazonaws.com"
-] + [
-    "https://admin.adlplumb.com.au"
-] + [
-    "https://api.adlplumb.com.au"
-]
+CSRF_TRUSTED_ORIGINS = list(CORS_ALLOWED_ORIGINS)
 
 
 # Database
@@ -314,6 +310,10 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 BASE_URL = os.getenv('BASE_URL', 'http://127.0.0.1:8000/')
 FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:3000')
 
+for extra in (FRONTEND_URL.rstrip('/'), BASE_URL.rstrip('/')):
+    if extra and extra not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(extra)
+
 
 # Rest Framework settings
 REST_FRAMEWORK = {
@@ -343,19 +343,34 @@ REST_FRAMEWORK = {
 
 # drf-spectacular settings
 SPECTACULAR_SETTINGS = {
-    'TITLE': 'RedPandaAcademy API',
-    'DESCRIPTION': "API for RedPandaAcademy",
-    'VERSION': '1.0.1',
-    'TERMS_OF_SERVICE': 'https://www.google.com/policies/terms/',
-    'CONTACT': {'email': 'maruf.bshs@gmail.com'},
-    'LICENSE': {'name': 'BSD License'},
+    'TITLE': 'Red Panda Academy API',
+    'DESCRIPTION': (
+        'Player API for Red Panda Academy. Curriculum stays in the client; '
+        'this API stores identity, progress snapshot, grades, protocol, and notifications. '
+        'Use GET/PUT /api/progression/snapshot/ to sync ProgressContext.'
+    ),
+    'VERSION': '1.1.0',
     'SERVE_INCLUDE_SCHEMA': False,
-    
-    # Postman friendly settings
     'COMPONENT_SPLIT_REQUEST': True,
-    #'POSTMAN_ENABLED': True,
     'SORT_OPERATIONS': False,
-    
+    'TAGS': [
+        {'name': 'auth', 'description': 'Registration, login, OAuth, password, and token refresh'},
+        {'name': 'users', 'description': 'Authenticated player profile'},
+        {'name': 'progression', 'description': 'Rank, snapshot sync, assignments, cards, drills, and stats'},
+        {'name': 'protocol', 'description': 'Training protocol phase and daily/weekly logs'},
+        {'name': 'grades', 'description': 'Quiz attempts and AI call grades'},
+        {'name': 'notifications', 'description': 'In-app player notifications'},
+    ],
+    'SECURITY': [{'bearerAuth': []}],
+    'APPEND_COMPONENTS': {
+        'securitySchemes': {
+            'bearerAuth': {
+                'type': 'http',
+                'scheme': 'bearer',
+                'bearerFormat': 'JWT',
+            }
+        }
+    },
 }
 
 
