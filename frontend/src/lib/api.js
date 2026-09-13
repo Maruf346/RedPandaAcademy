@@ -3,6 +3,18 @@ const TOKEN_KEY = "rpa_tokens_v1";
 export function getApiBase() {
   return String(import.meta.env.VITE_API_BASE || "/api").replace(/\/$/, "");
 }
+export function getWsBase() {
+  const explicit = import.meta.env.VITE_WS_BASE;
+  if (explicit) return String(explicit).replace(/\/$/, "");
+
+  const apiBase = getApiBase();
+  if (/^https?:\/\//i.test(apiBase)) {
+    return apiBase.replace(/^http/i, "ws").replace(/\/api$/, "");
+  }
+
+  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+  return `${protocol}//${window.location.host}`;
+}
 
 export function loadTokens() {
   try {
@@ -114,3 +126,5 @@ export async function api(path, options = {}) {
   }
   return payload;
 }
+
+export { ApiError };

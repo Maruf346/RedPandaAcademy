@@ -119,6 +119,7 @@ export default function AccountPage() {
                 await auth.registerInitiate({
                   email,
                   username: String(form.get("username")).trim(),
+                  full_name: String(form.get("full_name")).trim(),
                   password: form.get("password"),
                   birth_date: form.get("birth_date")
                 });
@@ -128,8 +129,11 @@ export default function AccountPage() {
               })
             }
           >
-            <Field label="Full username">
-              <input name="username" autoComplete="username" required />
+            <Field label="Full name">
+              <input name="full_name" autoComplete="name" maxLength={100} required />
+            </Field>
+            <Field label="Username">
+              <input name="username" autoComplete="username" maxLength={150} required />
             </Field>
             <Field label="Email">
               <input name="email" type="email" autoComplete="email" required />

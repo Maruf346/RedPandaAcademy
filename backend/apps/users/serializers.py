@@ -35,6 +35,11 @@ class InitiateRegistrationSerializer(serializers.Serializer):
         max_length=150,
         error_messages={'required': 'Username is required'}
     )
+    full_name = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        max_length=100
+    )
     password = serializers.CharField(
         min_length=8,
         write_only=True,
@@ -73,6 +78,9 @@ class InitiateRegistrationSerializer(serializers.Serializer):
         if User.objects.filter(username__iexact=value).exists():
             raise serializers.ValidationError('This username is already taken')
         return value
+
+    def validate_full_name(self, value):
+        return value.strip()
     
     
     # def validate(self, data):

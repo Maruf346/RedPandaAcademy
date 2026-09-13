@@ -98,6 +98,25 @@ export function AuthProvider({ children }) {
           body: { reset_token, new_password, confirm_new_password }
         });
       },
+      async updateProfile(fields) {
+        const nextUser = await api("/users/me/", {
+          method: "PATCH",
+          body: fields
+        });
+        setUser(nextUser);
+        return nextUser;
+      },
+      async changePassword(old_password, new_password, confirm_new_password) {
+        return api("/users/password/change/", {
+          method: "POST",
+          body: { old_password, new_password, confirm_new_password }
+        });
+      },
+      async deleteAccount() {
+        await api("/users/me/", { method: "DELETE" });
+        saveTokens(null);
+        setUser(null);
+      },
       async logout() {
         const tokens = loadTokens();
         try {

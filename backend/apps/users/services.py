@@ -48,7 +48,7 @@ class RegistrationService:
     # Service for user signup with OTP verification
     
     @staticmethod
-    def initiate_registration(email, password, username, birth_date=None):
+    def initiate_registration(email, password, username, birth_date=None, full_name=''):
         if User.objects.filter(email=email).exists():
             raise ValueError('Email already registered')
         if User.objects.filter(username__iexact=username).exists():
@@ -62,6 +62,7 @@ class RegistrationService:
         registration_data = {
             'email': email,
             'username': username,
+            'full_name': (full_name or username or '').strip(),
             'birth_date': str(birth_date) if birth_date else None,
             'password': make_password(password),
             'otp': otp
@@ -103,6 +104,7 @@ class RegistrationService:
         user = User.objects.create(
             email=email,
             username=registration_data['username'],
+            full_name=registration_data.get('full_name') or registration_data['username'],
             birth_date=birth_date,
             password=registration_data['password'],
             is_active=True,

@@ -32,6 +32,7 @@ import {
 } from "./data/knowledge.js";
 import { ProgressProvider, useProgress } from "./context/ProgressContext.jsx";
 import { AuthProvider, useAuth } from "./context/AuthContext.jsx";
+import { NotificationProvider, useNotifications } from "./context/NotificationContext.jsx";
 import AccountPage from "./pages/AccountPage.jsx";
 import ProfilePage from "./pages/ProfilePage.jsx";
 import { AI_NOTICE, aiComplete, aiMayWork } from "./lib/ai.js";
@@ -143,6 +144,7 @@ function Locked({ children }) {
 function Shell() {
   const { state } = useProgress();
   const { user } = useAuth();
+  const { unreadCount } = useNotifications();
   const currentRank = RANKS[state.rank] || RANKS[0];
 
   return (
@@ -161,6 +163,12 @@ function Shell() {
             <NavLink to={user ? "/profile" : "/account"} className="accountchip">
               {user ? user.full_name || user.email : "Sign in"}
             </NavLink>
+            {user && (
+              <NavLink to="/notifications" className="notificationchip" aria-label={`${unreadCount} unread notifications`}>
+                <span aria-hidden="true">🔔</span>
+                {unreadCount > 0 && <b>{unreadCount > 99 ? "99+" : unreadCount}</b>}
+              </NavLink>
+            )}
           </div>
         </header>
 
@@ -168,6 +176,7 @@ function Shell() {
           <Route path="/" element={<HomePage />} />
           <Route path="/account" element={<AccountPage />} />
           <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/learn" element={<Navigate to="/learn/steps" replace />} />
           <Route path="/learn/:tab" element={<LearnPage />} />
           <Route path="/drill" element={<Navigate to="/drill/cards" replace />} />
@@ -200,6 +209,91 @@ function Shell() {
   );
 }
 
+function NotificationsPage() {
+  const { user } = useAuth();
+  const {
+    notifications,
+    ready,
+    unreadCount,
+    refresh,
+    markRead,
+    markAllRead,
+    clearRead
+  } = useNotifications();
+  const [busy, setBusy] = useState("");
+
+  if (!user) {
+    return (
+      <main className="stack">
+        <Card>
+          <h2>Notifications</h2>
+          <p className="muted">Sign in to see academy notifications.</p>
+          <NavLink className="btn block" to="/account">Sign in</NavLink>
+        </Card>
+      </main>
+    );
+  }
+
+  async function run(action, fn) {
+    setBusy(action);
+    try {
+      await fn();
+    } finally {
+      setBusy("");
+    }
+  }
+
+  return (
+    <main className="stack">
+      <Card>
+        <div className="sectionTitleRow">
+          <div>
+            <h2>Notifications</h2>
+            <p className="small muted">{unreadCount} unread</p>
+          </div>
+          <div className="row tight">
+            <button className="btn small ghost" disabled={!!busy} onClick={() => run("refresh", refresh)}>
+              Refresh
+            </button>
+            <button className="btn small ghost" disabled={!!busy || unreadCount === 0} onClick={() => run("read", markAllRead)}>
+              Mark all read
+            </button>
+            <button className="btn small ghost" disabled={!!busy} onClick={() => run("clear", clearRead)}>
+              Clear read
+            </button>
+          </div>
+        </div>
+      </Card>
+
+      {!ready && <Notice>Loading notifications...</Notice>}
+
+      {ready && notifications.length === 0 && (
+        <Card>
+          <p className="muted">No notifications yet.</p>
+        </Card>
+      )}
+
+      {notifications.map((item) => (
+        <Card key={item.id} className={cx("notificationCard", !item.is_read && "unread")}>
+          <div className="sectionTitleRow">
+            <div>
+              <h3>{item.title}</h3>
+              <p>{item.body}</p>
+              <p className="small muted">
+                {item.created_at ? new Date(item.created_at).toLocaleString() : item.priority || "normal"}
+              </p>
+            </div>
+            {!item.is_read && (
+              <button className="btn small ghost" disabled={!!busy} onClick={() => run(item.id, () => markRead(item.id))}>
+                Mark read
+              </button>
+            )}
+          </div>
+        </Card>
+      ))}
+    </main>
+  );
+}
 function HomePage() {
   const { state, dispatch, snapshot } = useProgress();
   const { user } = useAuth();
@@ -1874,9 +1968,11 @@ function GradePage() {
 export default function App() {
   return (
     <AuthProvider>
-      <ProgressProvider>
-        <Shell />
-      </ProgressProvider>
+      <NotificationProvider>
+        <ProgressProvider>
+          <Shell />
+        </ProgressProvider>
+      </NotificationProvider>
     </AuthProvider>
   );
 }

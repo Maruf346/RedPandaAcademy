@@ -1003,3 +1003,55 @@ li {
     width: 100%;
   }
 }
+
+.notificationchip {
+  position: relative;
+  display: inline-grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--card);
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.notificationchip b {
+  position: absolute;
+  top: -6px;
+  right: -5px;
+  min-width: 18px;
+  border-radius: 999px;
+  background: var(--red);
+  color: #fff;
+  padding: 1px 5px;
+  font-size: 10px;
+  line-height: 16px;
+  text-align: center;
+}
+
+.row.tight {
+  margin: 0;
+}
+
+.sectionTitleRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.notificationCard.unread {
+  border-color: rgba(232, 181, 74, 0.65);
+}
+
+.notificationCard h3 {
+  color: var(--ink);
+}
+
+@media (max-width: 420px) {
+  .sectionTitleRow {
+    flex-direction: column;
+  }
+}

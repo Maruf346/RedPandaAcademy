@@ -44,6 +44,7 @@ class InitiateRegistrationView(APIView):
                 email=serializer.validated_data['email'],
                 password=serializer.validated_data['password'],
                 username=serializer.validated_data['username'],
+                full_name=serializer.validated_data.get('full_name', ''),
                 birth_date=serializer.validated_data.get('birth_date'),
             )
             
