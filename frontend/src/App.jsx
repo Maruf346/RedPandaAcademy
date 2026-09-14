@@ -38,7 +38,7 @@ import ProfilePage from "./pages/ProfilePage.jsx";
 import { AI_NOTICE, aiComplete, aiMayWork } from "./lib/ai.js";
 import { decodeProgress, encodeProgress } from "./lib/progressCode.js";
 import { canUseStorage } from "./lib/storage.js";
-import { gradePrompt, kbPrompt, weaknessPrompt } from "./lib/prompts.js";
+import { gradePrompt, kbPrompt, playbookContext, weaknessPrompt } from "./lib/prompts.js";
 import {
   PANDA_CONVERSATION_KEY,
   PANDA_PENDING_PROMPT_KEY,
@@ -1805,7 +1805,7 @@ function BotPage() {
       const conversation = await sendBotMessage({
         message: text,
         conversationId: idOverride || conversationId,
-        playbookContext: kbPrompt()
+        playbookContext: playbookContext()
       });
       setConversationId(conversation.id);
       window.localStorage.setItem(PANDA_CONVERSATION_KEY, conversation.id);

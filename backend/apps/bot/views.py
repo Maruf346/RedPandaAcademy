@@ -1,3 +1,5 @@
+import logging
+
 from rest_framework import mixins, status, viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -69,7 +71,8 @@ class BotMessageView(APIView):
                 role=BotMessage.Role.USER,
                 content=text,
             )
-            reply = f'I cannot reach the AI backend right now. {exc}'
+            logger.exception('Panda Bot provider failed: %s', exc)
+            reply = 'I cannot reach the AI backend right now. Try again in a minute, then keep the question tied to a step, KPI, script, or drill.'
             BotMessage.objects.create(
                 conversation=conversation,
                 role=BotMessage.Role.ASSISTANT,

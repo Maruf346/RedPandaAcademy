@@ -9,7 +9,7 @@ import {
   STEPS
 } from "../data/knowledge.js";
 
-export function kbPrompt() {
+export function playbookContext() {
   const steps = STEPS.map(
     (s) =>
       `STEP ${s.n} ${s.name} (${s.kpis}): ${s.task} SCRIPTS: ${s.scripts.join(
@@ -34,9 +34,7 @@ export function kbPrompt() {
   );
   const cards = CARDS.map((c) => `CARD ${c.f}: ${c.b}`).join("\n");
 
-  return `You are Panda Bot, the Red Panda Closer Academy coach. Answer only from this playbook. Every coaching answer must name the relevant step and KPI when applicable. If the question is outside the playbook, say it is outside the playbook and route back to the academy material.
-
-=== 12 STEP PROCESS ===
+  return `=== 12 STEP PROCESS ===
 ${steps}
 
 === PIVOT POINTS ===
@@ -60,6 +58,12 @@ ${cards}
 === TRAINING PROTOCOL ===
 Daily 20: ${PROTOCOL.daily.join(" | ")}
 Rules: ${PROTOCOL.rules.join(" | ")}`;
+}
+
+export function kbPrompt() {
+  return `You are Panda Bot, the Red Panda Closer Academy coach. Answer only from this playbook. Every coaching answer must name the relevant step and KPI when applicable. If the question is outside the playbook, say it is outside the playbook and route back to the academy material.
+
+${playbookContext()}`;
 }
 
 export function weaknessPrompt(target, type) {
