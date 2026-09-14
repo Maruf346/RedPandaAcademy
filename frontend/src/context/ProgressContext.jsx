@@ -251,14 +251,16 @@ export function ProgressProvider({ children }) {
   );
   const [syncEnabled, setSyncEnabled] = useState(false);
   const stateRef = useRef(state);
+  const ownerRef = useRef("guest");
 
   useEffect(() => {
     stateRef.current = state;
   }, [state]);
 
   useEffect(() => {
+    if (!ready || user || ownerRef.current !== "guest") return;
     saveStoredProgress(snapshot(state));
-  }, [state]);
+  }, [state, ready, user]);
 
   useEffect(() => {
     if (!ready) return undefined;
@@ -267,9 +269,15 @@ export function ProgressProvider({ children }) {
     async function hydrateFromServer() {
       setSyncEnabled(false);
       if (!user) {
-        if (!cancelled) setSyncEnabled(false);
+        ownerRef.current = "guest";
+        if (!cancelled) {
+          dispatch({ type: "IMPORT", payload: loadStoredProgress() || {} });
+          setSyncEnabled(false);
+        }
         return;
       }
+
+      ownerRef.current = String(user.id || user.email || "user");
       try {
         const remote = await api("/progression/snapshot/");
         if (cancelled) return;
@@ -278,9 +286,11 @@ export function ProgressProvider({ children }) {
           dispatch({ type: "IMPORT", payload: remote });
         } else if (!isEmptySnapshot(local)) {
           await api("/progression/snapshot/", { method: "PUT", body: local });
+        } else {
+          dispatch({ type: "IMPORT", payload: {} });
         }
       } catch {
-        // Stay on localStorage if the API is down.
+        // Stay on the current in-memory state if the API is down.
       } finally {
         if (!cancelled) setSyncEnabled(true);
       }
@@ -318,3 +328,4 @@ export function useProgress() {
   if (!value) throw new Error("useProgress must be used inside ProgressProvider");
   return value;
 }
+

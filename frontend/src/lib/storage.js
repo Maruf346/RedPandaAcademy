@@ -1,4 +1,4 @@
-export const STORAGE_KEY = "rpa_progress_v1";
+export const STORAGE_KEY = "rpa_guest_progress_v1";
 
 export function canUseStorage() {
   try {
