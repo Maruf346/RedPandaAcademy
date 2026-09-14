@@ -302,7 +302,7 @@ function NotificationsPage() {
 }
 function HomePage() {
   const { state, dispatch, snapshot } = useProgress();
-  const { user } = useAuth();
+  const { user, ready: authReady } = useAuth();
   const navigate = useNavigate();
   const [code, setCode] = useState("");
   const [codeMode, setCodeMode] = useState("");
@@ -507,14 +507,15 @@ function HomePage() {
 
       <Card>
         <h2>💾 Progress</h2>
-        {user ? (
+        {!authReady ? (
+          <div className="small muted">Checking save status...</div>
+        ) : user ? (
           <>
             <div className="small green">
               ✓ Cloud save is ON — signed in as {user.email}.
             </div>
             <div className="small muted progressHelp">
-              This device still keeps a local copy. Backup codes remain the
-              offline fallback.
+              Your rank and training progress sync to your academy account.
             </div>
           </>
         ) : storageOn ? (
