@@ -1,7 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
-import { formatApiError } from "../lib/api.js";
+import { useProgress } from "../context/ProgressContext.jsx";
+import { RANKS } from "../data/knowledge.js";
+import { formatApiError, getApiBase } from "../lib/api.js";
 import { listCallGrades, listQuizAttempts } from "../lib/records.js";
 
 function Field({ label, children }) {
@@ -13,15 +15,49 @@ function Field({ label, children }) {
   );
 }
 
+function resolveMediaUrl(value) {
+  if (!value) return "";
+  if (/^https?:\/\//i.test(value)) return value;
+  if (!value.startsWith("/")) return value;
+  const apiBase = getApiBase();
+  if (/^https?:\/\//i.test(apiBase)) return `${new URL(apiBase).origin}${value}`;
+  return value;
+}
+
+function initialsFor(user) {
+  const source = user.full_name || user.username || user.email || "Player";
+  return source.trim().charAt(0).toUpperCase() || "P";
+}
+
 export default function ProfilePage() {
   const auth = useAuth();
   const { user, logout } = auth;
+  const { state } = useProgress();
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [avatarFile, setAvatarFile] = useState(null);
   const [history, setHistory] = useState({ quizzes: [], grades: [], ready: false });
 
+  const currentRank = RANKS[state.rank] || RANKS[0];
+  const avatarPreview = useMemo(() => {
+    if (!avatarFile) return "";
+    return URL.createObjectURL(avatarFile);
+  }, [avatarFile]);
+  const avatarUrl = avatarPreview || resolveMediaUrl(user?.profile_picture || "");
+  const bestScore = Math.max(...Object.values(state.best || {}).map((score) => Number(score) || 0), 0);
+  const canChangePassword = user?.provider === "self";
+
+  useEffect(() => {
+    return () => {
+      if (avatarPreview) URL.revokeObjectURL(avatarPreview);
+    };
+  }, [avatarPreview]);
+
+  useEffect(() => {
+    setAvatarFile(null);
+  }, [user?.id]);
 
   useEffect(() => {
     let cancelled = false;
@@ -42,6 +78,7 @@ export default function ProfilePage() {
       cancelled = true;
     };
   }, [user]);
+
   if (!user) {
     return (
       <main className="stack">
@@ -67,11 +104,14 @@ export default function ProfilePage() {
     setError("");
     setNotice("");
     const form = new FormData(event.currentTarget);
+    const payload = new FormData();
+    payload.append("full_name", String(form.get("full_name") || "").trim());
+    payload.append("phone", String(form.get("phone") || "").trim());
+    if (avatarFile) payload.append("profile_picture", avatarFile);
+
     try {
-      await auth.updateProfile({
-        full_name: String(form.get("full_name")).trim(),
-        phone: String(form.get("phone")).trim()
-      });
+      await auth.updateProfile(payload);
+      setAvatarFile(null);
       setNotice("Profile updated.");
     } catch (err) {
       setError(err.payload ? formatApiError(err.payload) : err.message);
@@ -116,21 +156,34 @@ export default function ProfilePage() {
 
   return (
     <main className="stack">
-      <section className="card profileCard">
-        <div className="profileHeader">
-          <div className="profileAvatar">
-            {user.full_name ? user.full_name.charAt(0).toUpperCase() : "P"}
+      <section className="card profileCard premiumProfileCard">
+        <div className="profileHeader premiumProfileHeader">
+          <div className="profileAvatar large">
+            {avatarUrl ? <img src={avatarUrl} alt="" /> : initialsFor(user)}
           </div>
-          <div>
-            <h2>{user.full_name || "Player"}</h2>
+          <div className="profileIdentity">
+            <span className="profileEyebrow">Academy profile</span>
+            <h2>{user.full_name || user.username || "Player"}</h2>
             <p className="muted">{user.email}</p>
+          </div>
+          <div className="profileRankBadge" aria-label={`Current rank ${currentRank.name}`}>
+            <span>{currentRank.em}</span>
+            <strong>{currentRank.name}</strong>
           </div>
         </div>
 
-        <div className="profileGrid">
+        <div className="profileGrid premiumProfileGrid">
           <div className="profileItem">
-            <span className="profileLabel">Provider</span>
-            <strong>{user.provider || "Email"}</strong>
+            <span className="profileLabel">Username</span>
+            <strong>{user.username || "Not set"}</strong>
+          </div>
+          <div className="profileItem">
+            <span className="profileLabel">Rank</span>
+            <strong>{currentRank.name}</strong>
+          </div>
+          <div className="profileItem">
+            <span className="profileLabel">Best exam</span>
+            <strong>{bestScore ? `${bestScore}%` : "Not attempted"}</strong>
           </div>
           <div className="profileItem">
             <span className="profileLabel">Status</span>
@@ -156,6 +209,23 @@ export default function ProfilePage() {
         {error ? <div className="notice">{error}</div> : null}
         {notice ? <div className="small green">{notice}</div> : null}
         <form className="authForm" onSubmit={submitProfile}>
+          <div className="avatarEditor">
+            <div className="profileAvatar">
+              {avatarUrl ? <img src={avatarUrl} alt="" /> : initialsFor(user)}
+            </div>
+            <label className="btn small ghost avatarPicker">
+              Change photo
+              <input
+                name="profile_picture"
+                type="file"
+                accept="image/*"
+                onChange={(event) => setAvatarFile(event.target.files?.[0] || null)}
+              />
+            </label>
+          </div>
+          <Field label="Username">
+            <input value={user.username || ""} readOnly />
+          </Field>
           <Field label="Full name">
             <input name="full_name" defaultValue={user.full_name || ""} maxLength={100} />
           </Field>
@@ -166,7 +236,7 @@ export default function ProfilePage() {
         </form>
       </section>
 
-      {user.provider === "self" && (
+      {canChangePassword && (
         <section className="card">
           <h2>Change password</h2>
           <form className="authForm" onSubmit={submitPassword}>

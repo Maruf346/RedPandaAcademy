@@ -7,6 +7,7 @@ import jwt
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 import logging
+import re
 
 # OAuth2 imports
 from google.oauth2 import id_token
@@ -20,6 +21,15 @@ from apps.notifications.services import NotificationTemplates
 logger = logging.getLogger(__name__)
 User = get_user_model()
 
+
+def unique_username_from_email(email):
+    base = re.sub(r'[^a-zA-Z0-9_]+', '', (email.split('@')[0] or 'player'))[:140] or 'player'
+    candidate = base
+    suffix = 1
+    while User.objects.filter(username__iexact=candidate).exists():
+        suffix += 1
+        candidate = f'{base[:140 - len(str(suffix))]}{suffix}'
+    return candidate
 # ==================== REGISTRATION SERIALIZERS ====================
 class InitiateRegistrationSerializer(serializers.Serializer):
     email = serializers.EmailField(
@@ -217,13 +227,13 @@ class UserProfileSerializer(ModelSerializer):
     class Meta:
         model = User
         fields = [
-            'id', 'full_name', 
+            'id', 'username', 'full_name', 
             'email', 'profile_picture',
             'is_active', 
             'phone', 'provider', 
             'created_at', 'updated_at'
         ]
-        read_only_fields = ['id', 'is_active', 'email', 'provider', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'username', 'is_active', 'email', 'provider', 'created_at', 'updated_at']
 
 
 class UserLoginSerializer(ModelSerializer):
@@ -368,6 +378,7 @@ class GoogleOAuthSerializer(serializers.Serializer):
         user, created = User.objects.get_or_create(
             email=email,
             defaults={
+                'username': unique_username_from_email(email),
                 'full_name': full_name,
                 'is_active': True,
                 'provider': AuthProvider.GOOGLE,
@@ -399,6 +410,9 @@ class GoogleOAuthSerializer(serializers.Serializer):
             elif provider_id and not user.provider_id:
                 user.provider_id = provider_id
                 user.save(update_fields=['provider_id', 'updated_at'])
+            if not user.username:
+                user.username = unique_username_from_email(email)
+                user.save(update_fields=['username', 'updated_at'])
 
         refresh = RefreshToken.for_user(user)
         return {
@@ -455,6 +469,7 @@ class AppleOAuthSerializer(serializers.Serializer):
         user, created = User.objects.get_or_create(
             email=email,
             defaults={
+                'username': unique_username_from_email(email),
                 'full_name': full_name,
                 'is_active': True,
                 'provider': AuthProvider.APPLE,
@@ -485,6 +500,9 @@ class AppleOAuthSerializer(serializers.Serializer):
                 raise serializers.ValidationError('Account already exists. Please login with email and password')
             if user.provider != AuthProvider.APPLE:
                 raise serializers.ValidationError(f'Account already exists. Please login with {user.provider}')
+            if not user.username:
+                user.username = unique_username_from_email(email)
+                user.save(update_fields=['username', 'updated_at'])
             
         refresh = RefreshToken.for_user(user)
         
@@ -503,8 +521,8 @@ class AppleOAuthSerializer(serializers.Serializer):
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'full_name', 'email', 'profile_picture', 'is_active', 'provider', 'created_at', 'updated_at']
-        read_only_fields = ['id', 'is_active', 'email', 'provider', 'created_at', 'updated_at']
+        fields = ['id', 'username', 'full_name', 'email', 'profile_picture', 'is_active', 'provider', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'username', 'is_active', 'email', 'provider', 'created_at', 'updated_at']
 
 
 class AuthTokenResponseSerializer(serializers.Serializer):
@@ -519,4 +537,8 @@ class RegistrationResponseSerializer(serializers.Serializer):
     access_token = serializers.CharField()
     refresh_token = serializers.CharField()
     user = UserSerializer()
+
+
+
+
 

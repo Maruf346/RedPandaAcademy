@@ -182,6 +182,107 @@ code {
   letter-spacing: 0.06em;
 }
 
+
+.premiumProfileCard {
+  background: linear-gradient(135deg, rgba(224, 82, 82, 0.14), rgba(245, 178, 90, 0.08)), var(--card);
+}
+
+.premiumProfileHeader {
+  align-items: flex-start;
+}
+
+.profileAvatar.large {
+  width: 76px;
+  height: 76px;
+  font-size: 30px;
+}
+
+.profileAvatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: cover;
+}
+
+.profileIdentity {
+  min-width: 0;
+  flex: 1;
+}
+
+.profileIdentity h2,
+.profileIdentity p {
+  overflow-wrap: anywhere;
+}
+
+.profileEyebrow {
+  display: block;
+  margin-bottom: 3px;
+  color: var(--gold);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.profileRankBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid rgba(245, 178, 90, 0.45);
+  border-radius: 999px;
+  background: rgba(245, 178, 90, 0.1);
+  color: var(--ink);
+  padding: 8px 12px;
+  white-space: nowrap;
+}
+
+.profileRankBadge span {
+  font-size: 18px;
+}
+
+.premiumProfileGrid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.avatarEditor {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.avatarPicker {
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.avatarPicker input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.authField input[readonly] {
+  color: var(--dim);
+  cursor: default;
+}
+
+@media (max-width: 720px) {
+  .premiumProfileHeader {
+    flex-wrap: wrap;
+  }
+
+  .profileRankBadge {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .premiumProfileGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
 .profileActions {
   display: grid;
   gap: 8px;
@@ -1080,4 +1181,5 @@ li {
   flex: 1;
   height: 1px;
 }
+
 
