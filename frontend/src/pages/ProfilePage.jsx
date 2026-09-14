@@ -127,6 +127,7 @@ export default function ProfilePage() {
     try {
       await auth.updateProfile(payload);
       setAvatarFile(null);
+      setEditOpen(false);
       setNotice("Profile updated.");
     } catch (err) {
       setError(err.payload ? formatApiError(err.payload) : err.message);
@@ -292,3 +293,4 @@ export default function ProfilePage() {
     </main>
   );
 }
+

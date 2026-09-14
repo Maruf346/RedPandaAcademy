@@ -556,71 +556,68 @@ function HomePage() {
         </button>
       </Card>
 
-      <Card>
-        <h2>💾 Progress</h2>
-        {!authReady ? (
-          <div className="small muted">Checking save status...</div>
-        ) : user ? (
-          <>
-            <div className="small green">
-              ✓ Cloud save is ON — signed in as {user.email}.
+      {(!authReady || !user) && (
+        <Card>
+          <h2>💾 Progress</h2>
+          {!authReady ? (
+            <div className="small muted">Checking save status...</div>
+          ) : storageOn ? (
+            <>
+              <div className="small green">
+                ✓ Auto-save is ON — your progress stays on this device.
+              </div>
+              <div className="small muted progressHelp">
+                Sign in to save rank across phones. Or grab a backup code below.
+              </div>
+            </>
+          ) : (
+            <div className="small muted">
+              Auto-save isn’t available in this view. Copy a backup code before you
+              close; paste it next time.
             </div>
-            <div className="small muted progressHelp">
-              Your rank and training progress sync to your academy account.
-            </div>
-          </>
-        ) : storageOn ? (
-          <>
-            <div className="small green">
-              ✓ Auto-save is ON — your progress stays on this device.
-            </div>
-            <div className="small muted progressHelp">
-              Sign in to save rank across phones. Or grab a backup code below.
-            </div>
-          </>
-        ) : (
-          <div className="small muted">
-            Auto-save isn’t available in this view. Copy a backup code before you
-            close; paste it next time.
-          </div>
-        )}
-        <div className="progressBtns">
-          <button className="btn small ghost" onClick={exportNow}>
-            Backup code
-          </button>
-          <button
-            className="btn small ghost"
-            onClick={() => {
-              setCode("");
-              setCodeMode("restore");
-            }}
-          >
-            Restore from code
-          </button>
-        </div>
-        {codeMode === "backup" && (
-          <>
-            <textarea
-              readOnly
-              value={code}
-              onClick={(event) => event.currentTarget.select()}
-            />
-            <div className="small muted">Tap, copy, keep it somewhere.</div>
-          </>
-        )}
-        {codeMode === "restore" && (
-          <>
-            <textarea
-              value={code}
-              onChange={(event) => setCode(event.target.value)}
-              placeholder="Paste your progress code"
-            />
-            <button className="btn small" onClick={importNow}>
-              Restore
-            </button>
-          </>
-        )}
-      </Card>
+          )}
+          {authReady && (
+            <>
+              <div className="progressBtns">
+                <button className="btn small ghost" onClick={exportNow}>
+                  Backup code
+                </button>
+                <button
+                  className="btn small ghost"
+                  onClick={() => {
+                    setCode("");
+                    setCodeMode("restore");
+                  }}
+                >
+                  Restore from code
+                </button>
+              </div>
+              {codeMode === "backup" && (
+                <>
+                  <textarea
+                    readOnly
+                    value={code}
+                    onClick={(event) => event.currentTarget.select()}
+                  />
+                  <div className="small muted">Tap, copy, keep it somewhere.</div>
+                </>
+              )}
+              {codeMode === "restore" && (
+                <>
+                  <textarea
+                    value={code}
+                    onChange={(event) => setCode(event.target.value)}
+                    placeholder="Paste your progress code"
+                  />
+                  <button className="btn small" onClick={importNow}>
+                    Restore
+                  </button>
+                </>
+              )}
+            </>
+          )}
+        </Card>
+      )}
     </main>
   );
 }
@@ -2174,5 +2171,6 @@ export default function App() {
     </AuthProvider>
   );
 }
+
 
 
