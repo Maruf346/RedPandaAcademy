@@ -386,11 +386,9 @@ function HomePage() {
 
   return (
     <main className="stack">
-      {state.rank === 0 && (
-        <div className="homeHero">
-          <img src="/RedPanda.png" alt="Red Panda Roofing" />
-        </div>
-      )}
+      <div className="homeHero">
+        <img src="/RedPanda.png" alt="Red Panda Roofing" />
+      </div>
 
       <Card className="rankHero">
         <div className="rankEmoji">{RANKS[state.rank].em}</div>
@@ -2297,6 +2295,7 @@ export default function App() {
     </AuthProvider>
   );
 }
+
 
 
 
