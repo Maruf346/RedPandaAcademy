@@ -1,38 +1,32 @@
-let netlifyAi = null;
+import { api } from "./api.js";
+
+let backendAi = null;
 
 export function aiMayWork() {
-  return (
-    (typeof window !== "undefined" &&
-      window.claude &&
-      typeof window.claude.complete === "function") ||
-    netlifyAi !== false
-  );
+  return backendAi !== false;
 }
 
-export async function aiComplete(prompt) {
-  if (
-    typeof window !== "undefined" &&
-    window.claude &&
-    typeof window.claude.complete === "function"
-  ) {
-    return window.claude.complete(prompt);
+async function aiTask(path, prompt) {
+  try {
+    const data = await api(path, {
+      method: "POST",
+      body: { prompt }
+    });
+    backendAi = true;
+    return data.text || "";
+  } catch (error) {
+    backendAi = false;
+    throw error;
   }
+}
 
-  const response = await fetch("/.netlify/functions/claude", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ prompt })
-  });
+export function gradeCallAi(prompt) {
+  return aiTask("/ai/grade-call/", prompt);
+}
 
-  if (!response.ok) {
-    netlifyAi = false;
-    throw new Error("AI backend unavailable");
-  }
-
-  netlifyAi = true;
-  const data = await response.json();
-  return data.text || "";
+export function trainWeaknessAi(prompt) {
+  return aiTask("/ai/train-weakness/", prompt);
 }
 
 export const AI_NOTICE =
-  "AI needs the Netlify function deployed with ANTHROPIC_API_KEY. Reading, drills, quizzes, ranks, and progress codes work without AI.";
+  "AI needs login and the backend configured with ANTHROPIC_API_KEY. Reading, drills, quizzes, ranks, and progress codes work without AI.";

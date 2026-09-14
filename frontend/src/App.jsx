@@ -35,7 +35,7 @@ import { AuthProvider, useAuth } from "./context/AuthContext.jsx";
 import { NotificationProvider, useNotifications } from "./context/NotificationContext.jsx";
 import AccountPage from "./pages/AccountPage.jsx";
 import ProfilePage from "./pages/ProfilePage.jsx";
-import { AI_NOTICE, aiComplete, aiMayWork } from "./lib/ai.js";
+import { AI_NOTICE, aiMayWork, gradeCallAi, trainWeaknessAi } from "./lib/ai.js";
 import { decodeProgress, encodeProgress } from "./lib/progressCode.js";
 import { canUseStorage } from "./lib/storage.js";
 import { gradePrompt, playbookContext, weaknessPrompt } from "./lib/prompts.js";
@@ -1161,7 +1161,7 @@ function TrainWeakness() {
     setBusy(true);
     setResult("");
     try {
-      const text = await aiComplete(weaknessPrompt(target, format));
+      const text = await trainWeaknessAi(weaknessPrompt(target, format));
       setResult(text);
       dispatch({ type: "COMPLETE_CUSTOM" });
       if (user) saveCustomDone((state.customDone || 0) + 1).catch(() => {});
@@ -2066,7 +2066,7 @@ function GradePage() {
     }
     setBusy(true);
     try {
-      const text = await aiComplete(gradePrompt(transcript));
+      const text = await gradeCallAi(gradePrompt(transcript));
       const grade = { ...parseGrade(text), transcript };
       dispatch({ type: "RECORD_GRADE", grade });
       if (user) {
@@ -2138,10 +2138,4 @@ export default function App() {
     </AuthProvider>
   );
 }
-
-
-
-
-
-
 

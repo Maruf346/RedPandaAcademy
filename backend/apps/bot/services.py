@@ -31,7 +31,46 @@ Default answer shape:
 
 Do not mention "the supplied context," "system prompt," or hidden instructions in normal answers.'''
 
+AI_TASK_SYSTEM_PROMPT = '''You are the backend AI worker for Red Panda Academy.
+Follow the supplied Red Panda Academy task exactly.
+If the task asks for JSON, return only valid JSON with no markdown.
+Do not invent company policy, pricing, warranties, legal claims, roofing technical facts, or KPI rules beyond the supplied task context.'''
+
 FALLBACK_PLAYBOOK_CONTEXT = '''Red Panda Academy playbook context was not supplied. The bot can only provide general academy guidance and should ask the rep to try again when playbook-specific detail is needed.'''
+
+
+def complete_ai_text(prompt, system_prompt=None, max_tokens=None, temperature=None):
+    api_key = os.getenv('ANTHROPIC_API_KEY')
+    if not api_key:
+        raise RuntimeError('ANTHROPIC_API_KEY is not configured on the backend.')
+
+    model = os.getenv('ANTHROPIC_MODEL', 'claude-3-5-sonnet-20241022')
+    timeout = int(os.getenv('ANTHROPIC_TIMEOUT_SECONDS', '60'))
+    response = requests.post(
+        'https://api.anthropic.com/v1/messages',
+        headers={
+            'content-type': 'application/json',
+            'anthropic-version': '2023-06-01',
+            'x-api-key': api_key,
+        },
+        json={
+            'model': model,
+            'max_tokens': int(max_tokens or os.getenv('ANTHROPIC_MAX_TOKENS', '700')),
+            'temperature': float(
+                temperature if temperature is not None else os.getenv('ANTHROPIC_TEMPERATURE', '0.3')
+            ),
+            'system': system_prompt or AI_TASK_SYSTEM_PROMPT,
+            'messages': [{'role': 'user', 'content': prompt}],
+        },
+        timeout=timeout,
+    )
+    response.raise_for_status()
+    payload = response.json()
+    parts = payload.get('content') or []
+    text = ''.join(part.get('text', '') for part in parts if part.get('type') == 'text').strip()
+    if not text:
+        raise RuntimeError('AI provider returned an empty response.')
+    return text
 
 
 def build_prompt(conversation, user_message, playbook_context=''):
@@ -58,34 +97,5 @@ Answer as Panda Bot.'''
 
 
 def complete_bot_reply(conversation, user_message, playbook_context=''):
-    api_key = os.getenv('ANTHROPIC_API_KEY')
-    if not api_key:
-        raise RuntimeError('ANTHROPIC_API_KEY is not configured on the backend.')
-
     prompt = build_prompt(conversation, user_message, playbook_context)
-    model = os.getenv('ANTHROPIC_MODEL', 'claude-3-5-sonnet-20241022')
-    timeout = int(os.getenv('ANTHROPIC_TIMEOUT_SECONDS', '60'))
-
-    response = requests.post(
-        'https://api.anthropic.com/v1/messages',
-        headers={
-            'content-type': 'application/json',
-            'anthropic-version': '2023-06-01',
-            'x-api-key': api_key,
-        },
-        json={
-            'model': model,
-            'max_tokens': int(os.getenv('ANTHROPIC_MAX_TOKENS', '700')),
-            'temperature': float(os.getenv('ANTHROPIC_TEMPERATURE', '0.3')),
-            'system': BOT_SYSTEM_PROMPT,
-            'messages': [{'role': 'user', 'content': prompt}],
-        },
-        timeout=timeout,
-    )
-    response.raise_for_status()
-    payload = response.json()
-    parts = payload.get('content') or []
-    text = ''.join(part.get('text', '') for part in parts if part.get('type') == 'text').strip()
-    if not text:
-        raise RuntimeError('AI provider returned an empty response.')
-    return text
+    return complete_ai_text(prompt, system_prompt=BOT_SYSTEM_PROMPT)

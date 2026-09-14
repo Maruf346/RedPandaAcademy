@@ -28,3 +28,12 @@ class BotSendMessageSerializer(serializers.Serializer):
     message = serializers.CharField(max_length=5000)
     conversation_id = serializers.UUIDField(required=False, allow_null=True)
     playbook_context = serializers.CharField(required=False, allow_blank=True)
+
+
+class AIGradeCallSerializer(serializers.Serializer):
+    prompt = serializers.CharField(max_length=60000)
+
+
+class AITrainWeaknessSerializer(serializers.Serializer):
+    prompt = serializers.CharField(max_length=30000)
+

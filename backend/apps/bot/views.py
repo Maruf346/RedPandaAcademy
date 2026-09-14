@@ -7,8 +7,8 @@ from rest_framework.views import APIView
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiResponse
 
 from .models import BotConversation, BotMessage
-from .serializers import BotConversationSerializer, BotSendMessageSerializer
-from .services import complete_bot_reply
+from .serializers import AIGradeCallSerializer, AITrainWeaknessSerializer, BotConversationSerializer, BotSendMessageSerializer
+from .services import complete_ai_text, complete_bot_reply
 
 logger = logging.getLogger(__name__)
 
@@ -98,4 +98,54 @@ class BotMessageView(APIView):
         )
         conversation.save(update_fields=['updated_at'])
         return Response(BotConversationSerializer(conversation).data, status=status.HTTP_200_OK)
+
+
+class AIGradeCallView(APIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = AIGradeCallSerializer
+
+    @extend_schema(
+        tags=['ai'],
+        summary='Grade a call transcript with backend AI',
+        request=AIGradeCallSerializer,
+        responses={
+            200: {'application/json': {'type': 'object', 'properties': {'text': {'type': 'string'}}}},
+            400: OpenApiResponse(description='Invalid grading payload'),
+            502: OpenApiResponse(description='AI provider unavailable'),
+        },
+    )
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            text = complete_ai_text(serializer.validated_data['prompt'], max_tokens=2600, temperature=0.1)
+        except Exception as exc:
+            logger.exception('Call grading provider failed: %s', exc)
+            return Response({'error': 'AI backend unavailable'}, status=status.HTTP_502_BAD_GATEWAY)
+        return Response({'text': text}, status=status.HTTP_200_OK)
+
+
+class AITrainWeaknessView(APIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = AITrainWeaknessSerializer
+
+    @extend_schema(
+        tags=['ai'],
+        summary='Generate a custom weakness training session with backend AI',
+        request=AITrainWeaknessSerializer,
+        responses={
+            200: {'application/json': {'type': 'object', 'properties': {'text': {'type': 'string'}}}},
+            400: OpenApiResponse(description='Invalid training payload'),
+            502: OpenApiResponse(description='AI provider unavailable'),
+        },
+    )
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            text = complete_ai_text(serializer.validated_data['prompt'], max_tokens=1400, temperature=0.3)
+        except Exception as exc:
+            logger.exception('Weakness training provider failed: %s', exc)
+            return Response({'error': 'AI backend unavailable'}, status=status.HTTP_502_BAD_GATEWAY)
+        return Response({'text': text}, status=status.HTTP_200_OK)
 

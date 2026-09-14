@@ -30,7 +30,7 @@ from apps.grades.views import (
     CallGradeViewSet,
     GradeKpiScoreViewSet,
 )
-from apps.bot.views import BotConversationViewSet, BotMessageView
+from apps.bot.views import AIGradeCallView, AITrainWeaknessView, BotConversationViewSet, BotMessageView
 
 # Single router for all viewsets (avoids format suffix converter conflicts)
 router = DefaultRouter()
@@ -65,6 +65,8 @@ urlpatterns = [
     path('progression/progress/', UserProgressView.as_view(), name='progress'),
 
     path('bot/messages/', BotMessageView.as_view(), name='bot-message'),
+    path('ai/grade-call/', AIGradeCallView.as_view(), name='ai-grade-call'),
+    path('ai/train-weakness/', AITrainWeaknessView.as_view(), name='ai-train-weakness'),
 
     path('protocol/', UserProtocolView.as_view(), name='protocol'),
     path('protocol/log-recall/', LogRecallView.as_view(), name='protocol-log-recall'),
