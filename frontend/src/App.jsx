@@ -38,7 +38,7 @@ import ProfilePage from "./pages/ProfilePage.jsx";
 import { AI_NOTICE, aiComplete, aiMayWork } from "./lib/ai.js";
 import { decodeProgress, encodeProgress } from "./lib/progressCode.js";
 import { canUseStorage } from "./lib/storage.js";
-import { gradePrompt, kbPrompt, playbookContext, weaknessPrompt } from "./lib/prompts.js";
+import { gradePrompt, playbookContext, weaknessPrompt } from "./lib/prompts.js";
 import {
   PANDA_CONVERSATION_KEY,
   PANDA_PENDING_PROMPT_KEY,
@@ -46,6 +46,17 @@ import {
   sendBotMessage
 } from "./lib/bot.js";
 import { saveCallGrade, saveQuizAttempt } from "./lib/records.js";
+import {
+  advanceProtocolPhase,
+  incrementAnchor,
+  logDrillSet,
+  logRecall,
+  logWeeklyDrill,
+  markD12,
+  markFlashcard,
+  saveCustomDone,
+  toggleAssignment
+} from "./lib/progressApi.js";
 
 const navItems = [
   { to: "/", icon: "🏠", label: "Home", end: true },
@@ -317,6 +328,11 @@ function HomePage() {
   const weak = weakestKpis(state);
   const storageOn = canUseStorage();
 
+  function completeAssignment(item, index) {
+    dispatch({ type: "DONE_ASSIGNMENT", index });
+    if (user && item.id) toggleAssignment(item.id).catch(() => {});
+  }
+
   function exportNow() {
     setCodeMode("backup");
     setCode(encodeProgress(snapshot()));
@@ -385,9 +401,7 @@ function HomePage() {
                 <br />
                 <button
                   className="btn small assignBtn"
-                  onClick={() =>
-                    dispatch({ type: "DONE_ASSIGNMENT", index: realIndex })
-                  }
+                  onClick={() => completeAssignment(item, realIndex)}
                 >
                   Mark complete
                 </button>
@@ -949,6 +963,7 @@ function DrillPage() {
 
 function Flashcards() {
   const { state, dispatch } = useProgress();
+  const { user } = useAuth();
   const [run, setRun] = useState(null);
   const mastered = Object.values(state.cards).filter((value) => value >= 2).length;
 
@@ -962,6 +977,7 @@ function Flashcards() {
   function scoreCard(hit) {
     const card = run.deck[run.i];
     dispatch({ type: "MARK_CARD", index: card.index, nailed: hit });
+    if (user) markFlashcard(card.index, hit).catch(() => {});
     if (run.i + 1 >= run.deck.length) setRun(null);
     else setRun({ ...run, i: run.i + 1, flipped: false });
   }
@@ -1016,7 +1032,13 @@ function Flashcards() {
 
 function PartnerDrills() {
   const { state, dispatch } = useProgress();
+  const { user } = useAuth();
   const navigate = useNavigate();
+
+  function completeDrillSet(drillNumber) {
+    dispatch({ type: "LOG_DRILL", n: drillNumber });
+    if (user) logDrillSet(drillNumber).catch(() => {});
+  }
 
   return (
     <>
@@ -1059,7 +1081,7 @@ function PartnerDrills() {
             </div>
             <button
               className="btn small"
-              onClick={() => dispatch({ type: "LOG_DRILL", n: drill.n })}
+              onClick={() => completeDrillSet(drill.n)}
             >
               Log a completed set
             </button>
@@ -1095,6 +1117,7 @@ function weaknessAutoText(state) {
 
 function TrainWeakness() {
   const { state, dispatch } = useProgress();
+  const { user } = useAuth();
   const [tt, setTt] = useState("scenario");
   const [tv, setTv] = useState("1");
   const [free, setFree] = useState("");
@@ -1136,6 +1159,7 @@ function TrainWeakness() {
       const text = await aiComplete(weaknessPrompt(target, format));
       setResult(text);
       dispatch({ type: "COMPLETE_CUSTOM" });
+      if (user) saveCustomDone((state.customDone || 0) + 1).catch(() => {});
     } catch {
       setResult(`Couldn’t generate — the AI backend isn’t reachable. ${AI_NOTICE}`);
     } finally {
@@ -1282,6 +1306,7 @@ function protoGateMet(proto) {
 
 function ProtocolPage() {
   const { state, dispatch } = useProgress();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [recall, setRecall] = useState(null);
   const proto = state.proto;
@@ -1301,7 +1326,9 @@ function ProtocolPage() {
 
   function finishRecall(pass) {
     if (pass) {
-      dispatch({ type: "LOG_RECALL", date: today() });
+      const date = today();
+      dispatch({ type: "LOG_RECALL", date });
+      if (user) logRecall(date).catch(() => {});
     } else {
       dispatch({
         type: "ADD_ASSIGNMENT",
@@ -1317,6 +1344,27 @@ function ProtocolPage() {
     setRecall(null);
   }
 
+  function advancePhase() {
+    dispatch({ type: "ADVANCE_PROTO" });
+    if (user) advanceProtocolPhase().catch(() => {});
+  }
+
+  function addAnchorRep(index) {
+    dispatch({ type: "INC_ANCHOR", index });
+    if (user) incrementAnchor(index).catch(() => {});
+  }
+
+  function completeD12(drillNumber) {
+    dispatch({ type: "SET_D12", n: drillNumber });
+    if (user) markD12(drillNumber).catch(() => {});
+  }
+
+  function completeWeeklyDrill(drillNumber) {
+    const date = today();
+    dispatch({ type: "LOG_WEEKLY", n: drillNumber, date });
+    if (user) logWeeklyDrill(drillNumber, date).catch(() => {});
+  }
+
   return (
     <>
       <Card className="protoHead">
@@ -1325,7 +1373,7 @@ function ProtocolPage() {
           {phase.focus} <b>Pass:</b> {phase.pass}
         </p>
         {protoGateMet(proto) && proto.phase < 4 && (
-          <button className="btn block" onClick={() => dispatch({ type: "ADVANCE_PROTO" })}>
+          <button className="btn block" onClick={advancePhase}>
             ✓ Pass condition met — advance to Phase {proto.phase + 1}
           </button>
         )}
@@ -1409,7 +1457,7 @@ function ProtocolPage() {
                   {reps}/5 clean reps {reps >= 5 ? "✓" : ""}
                 </span>
                 {reps < 5 && (
-                  <button className="btn small anchorBtn" onClick={() => dispatch({ type: "INC_ANCHOR", index })}>
+                  <button className="btn small anchorBtn" onClick={() => addAnchorRep(index)}>
                     +1 clean rep
                   </button>
                 )}
@@ -1439,7 +1487,7 @@ function ProtocolPage() {
               {proto.d12?.[n] ? (
                 <span className="green small">✓ Pass condition met</span>
               ) : (
-                <button className="btn small assignBtn" onClick={() => dispatch({ type: "SET_D12", n })}>
+                <button className="btn small assignBtn" onClick={() => completeD12(n)}>
                   Met the pass condition today
                 </button>
               )}
@@ -1462,7 +1510,7 @@ function ProtocolPage() {
               <button
                 className="btn small ghost"
                 key={drill.n}
-                onClick={() => dispatch({ type: "LOG_WEEKLY", n: drill.n, date: today() })}
+                onClick={() => completeWeeklyDrill(drill.n)}
               >
                 Log Drill {drill.n}
               </button>
@@ -2080,4 +2128,7 @@ export default function App() {
     </AuthProvider>
   );
 }
+
+
+
 

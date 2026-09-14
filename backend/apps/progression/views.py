@@ -178,6 +178,42 @@ class UserCardViewSet(
         progress = get_or_create_progress(self.request.user)
         serializer.save(user=self.request.user, progress=progress)
 
+    @extend_schema(
+        tags=['progression'],
+        summary="Mark flashcard mastery",
+        request={
+            'application/json': {
+                'type': 'object',
+                'properties': {
+                    'card_index': {'type': 'integer'},
+                    'nailed': {'type': 'boolean'},
+                },
+                'required': ['card_index', 'nailed'],
+            }
+        },
+        responses={
+            200: UserCardSerializer,
+            400: OpenApiResponse(description="Missing card_index or nailed"),
+        },
+    )
+    @action(detail=False, methods=['post'])
+    def mark(self, request):
+        if 'card_index' not in request.data or 'nailed' not in request.data:
+            return Response(
+                {'error': 'card_index and nailed are required'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        card_index = request.data.get('card_index')
+        nailed = bool(request.data.get('nailed'))
+        card, _created = UserCard.objects.get_or_create(
+            user=request.user,
+            card_index=card_index,
+            defaults={'mastery': 0, 'progress': get_or_create_progress(request.user)},
+        )
+        card.mastery = card.mastery + 1 if nailed else 0
+        card.save(update_fields=['mastery', 'updated_at'])
+        return Response(self.get_serializer(card).data)
+
 
 @extend_schema_view(
     list=extend_schema(tags=['progression'], summary="List drill completion"),
@@ -263,3 +299,4 @@ class UserScenarioStatViewSet(
 
     def get_queryset(self):
         return UserScenarioStat.objects.filter(user=self.request.user)
+

@@ -89,6 +89,7 @@ def last_grade_to_frontend(grade):
 
 def assignment_to_frontend(assignment):
     return {
+        'id': str(assignment.id),
         'name': assignment.name,
         'why': assignment.why,
         'sets': assignment.sets,
@@ -326,3 +327,4 @@ def apply_snapshot(user, data, partial=False):
         _maybe_save_last_grade(user, payload.get('lastGrade'))
 
     return build_snapshot(user)
+

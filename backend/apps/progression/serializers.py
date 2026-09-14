@@ -73,6 +73,7 @@ class UserScenarioStatSerializer(serializers.ModelSerializer):
 
 
 class SnapshotAssignmentSerializer(serializers.Serializer):
+    id = serializers.CharField(required=False, allow_blank=True)
     name = serializers.CharField(max_length=255)
     why = serializers.CharField(required=False, allow_blank=True, default='')
     sets = serializers.CharField(required=False, allow_blank=True, default='2')
@@ -93,6 +94,7 @@ class SnapshotAssignmentSerializer(serializers.Serializer):
     def to_representation(self, instance):
         if hasattr(instance, 'name'):
             return {
+                'id': str(instance.id),
                 'name': instance.name,
                 'why': instance.why,
                 'sets': instance.sets,
@@ -119,3 +121,5 @@ class ProgressSnapshotSerializer(serializers.Serializer):
     customDone = serializers.IntegerField(required=False, min_value=0)
     proto = serializers.JSONField(required=False)
     lastGrade = serializers.JSONField(required=False, allow_null=True)
+
+
