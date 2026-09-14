@@ -227,6 +227,21 @@ function Shell() {
   );
 }
 
+function notificationLabel(type = "") {
+  return String(type || "update")
+    .split("_")
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
+function notificationTone(item) {
+  if (item.priority === "high") return "high";
+  if (item.notification_type?.includes("failed")) return "needsWork";
+  if (item.notification_type?.includes("passed") || item.notification_type?.includes("completed") || item.notification_type?.includes("upgraded")) return "win";
+  return "normal";
+}
+
 function NotificationsPage() {
   const { user } = useAuth();
   const {
@@ -243,9 +258,12 @@ function NotificationsPage() {
   if (!user) {
     return (
       <main className="stack">
-        <Card>
-          <h2>Notifications</h2>
-          <p className="muted">Sign in to see academy notifications.</p>
+        <Card className="notificationHero">
+          <div>
+            <span className="profileEyebrow">Academy updates</span>
+            <h2>Notifications</h2>
+            <p className="muted">Sign in to see rank, training, and account updates.</p>
+          </div>
           <NavLink className="btn block" to="/account">Sign in</NavLink>
         </Card>
       </main>
@@ -262,53 +280,71 @@ function NotificationsPage() {
   }
 
   return (
-    <main className="stack">
-      <Card>
-        <div className="sectionTitleRow">
+    <main className="stack notificationStack">
+      <Card className="notificationHero">
+        <div className="sectionTitleRow notificationHeaderRow">
           <div>
+            <span className="profileEyebrow">Academy updates</span>
             <h2>Notifications</h2>
-            <p className="small muted">{unreadCount} unread</p>
+            <p className="small muted">{unreadCount} unread notification{unreadCount === 1 ? "" : "s"}</p>
           </div>
-          <div className="row tight">
-            <button className="btn small ghost" disabled={!!busy} onClick={() => run("refresh", refresh)}>
+          <div className="notificationActions">
+            <button className="btn small ghost premiumAction" disabled={!!busy} onClick={() => run("refresh", refresh)}>
               Refresh
             </button>
-            <button className="btn small ghost" disabled={!!busy || unreadCount === 0} onClick={() => run("read", markAllRead)}>
+            <button className="btn small ghost premiumAction" disabled={!!busy || unreadCount === 0} onClick={() => run("read", markAllRead)}>
               Mark all read
             </button>
-            <button className="btn small ghost" disabled={!!busy} onClick={() => run("clear", clearRead)}>
+            <button className="btn small ghost premiumAction dangerSoft" disabled={!!busy} onClick={() => run("clear", clearRead)}>
               Clear read
             </button>
           </div>
         </div>
       </Card>
 
-      {!ready && <Notice>Loading notifications...</Notice>}
-
-      {ready && notifications.length === 0 && (
-        <Card>
-          <p className="muted">No notifications yet.</p>
+      {!ready && (
+        <Card className="notificationCard shimmerCard">
+          <p className="muted">Loading notifications...</p>
         </Card>
       )}
 
-      {notifications.map((item) => (
-        <Card key={item.id} className={cx("notificationCard", !item.is_read && "unread")}>
-          <div className="sectionTitleRow">
-            <div>
-              <h3>{item.title}</h3>
-              <p>{item.body}</p>
-              <p className="small muted">
-                {item.created_at ? new Date(item.created_at).toLocaleString() : item.priority || "normal"}
-              </p>
-            </div>
-            {!item.is_read && (
-              <button className="btn small ghost" disabled={!!busy} onClick={() => run(item.id, () => markRead(item.id))}>
-                Mark read
-              </button>
-            )}
-          </div>
+      {ready && notifications.length === 0 && (
+        <Card className="notificationEmpty">
+          <span className="notificationGlyph">✓</span>
+          <h3>No notifications yet</h3>
+          <p className="muted">Rank changes, call grades, drills, and account alerts will land here.</p>
         </Card>
-      ))}
+      )}
+
+      {notifications.map((item) => {
+        const tone = notificationTone(item);
+        return (
+          <Card key={item.id} className={cx("notificationCard premiumNotification", !item.is_read && "unread", `tone-${tone}`)}>
+            <div className="notificationAccent" aria-hidden="true" />
+            <div className="notificationBody">
+              <div className="sectionTitleRow notificationItemRow">
+                <div>
+                  <div className="notificationMetaRow">
+                    {!item.is_read && <span className="unreadDot" aria-hidden="true" />}
+                    <span className="notificationTypeChip">{notificationLabel(item.notification_type)}</span>
+                    <span className="small muted">{item.priority || "normal"}</span>
+                  </div>
+                  <h3>{item.title}</h3>
+                  <p>{item.body}</p>
+                  <p className="small muted">
+                    {item.created_at ? new Date(item.created_at).toLocaleString() : "Just now"}
+                  </p>
+                </div>
+                {!item.is_read && (
+                  <button className="btn small ghost premiumAction" disabled={!!busy} onClick={() => run(item.id, () => markRead(item.id))}>
+                    Mark read
+                  </button>
+                )}
+              </div>
+            </div>
+          </Card>
+        );
+      })}
     </main>
   );
 }
@@ -2138,4 +2174,5 @@ export default function App() {
     </AuthProvider>
   );
 }
+
 

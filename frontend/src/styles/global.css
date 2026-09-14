@@ -283,6 +283,223 @@ code {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+.twoColActions {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.drawerBackdrop {
+  position: fixed;
+  z-index: 80;
+  inset: 0;
+  display: flex;
+  justify-content: flex-end;
+  background: rgba(8, 10, 14, 0.68);
+  backdrop-filter: blur(8px);
+}
+
+.accountDrawer {
+  width: min(430px, 100%);
+  height: 100%;
+  overflow-y: auto;
+  border-left: 1px solid var(--line);
+  background: #1b1f27;
+  box-shadow: -24px 0 60px rgba(0, 0, 0, 0.36);
+  padding: 18px;
+}
+
+.drawerHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.drawerHeader h2,
+.drawerPanel h3 {
+  margin: 0 0 8px;
+}
+
+.drawerPanel {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.025);
+  padding: 14px;
+}
+
+.drawerPanel + .drawerPanel {
+  margin-top: 12px;
+}
+
+.iconBtn {
+  width: 36px;
+  min-width: 36px;
+  height: 36px;
+  padding: 0;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.notificationStack {
+  gap: 10px;
+}
+
+.notificationHero {
+  background: linear-gradient(135deg, rgba(224, 82, 82, 0.14), rgba(245, 178, 90, 0.08)), var(--card);
+}
+
+.notificationHeaderRow {
+  align-items: center;
+}
+
+.notificationActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.premiumAction {
+  border-color: rgba(245, 178, 90, 0.28);
+  background: rgba(255, 255, 255, 0.035);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.premiumAction:hover:not(:disabled) {
+  border-color: rgba(245, 178, 90, 0.6);
+  background: rgba(245, 178, 90, 0.08);
+}
+
+.dangerSoft:hover:not(:disabled) {
+  border-color: rgba(224, 82, 82, 0.6);
+  background: rgba(224, 82, 82, 0.1);
+}
+
+.premiumNotification {
+  position: relative;
+  overflow: hidden;
+  padding: 0;
+  background: rgba(32, 36, 44, 0.94);
+}
+
+.notificationAccent {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 4px;
+  background: var(--line);
+}
+
+.notificationBody {
+  padding: 14px 16px 14px 18px;
+}
+
+.notificationItemRow {
+  align-items: center;
+}
+
+.notificationMetaRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 7px;
+}
+
+.notificationTypeChip {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.045);
+  color: var(--dim);
+  padding: 3px 9px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.unreadDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--gold);
+  box-shadow: 0 0 0 4px rgba(245, 178, 90, 0.12);
+}
+
+.notificationCard.unread {
+  border-color: rgba(245, 178, 90, 0.58);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.18);
+}
+
+.tone-high .notificationAccent,
+.tone-win .notificationAccent {
+  background: var(--gold);
+}
+
+.tone-needsWork .notificationAccent {
+  background: var(--panda);
+}
+
+.tone-normal .notificationAccent {
+  background: var(--dim);
+}
+
+.notificationEmpty {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 28px 18px;
+  text-align: center;
+}
+
+.notificationGlyph {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border: 1px solid rgba(245, 178, 90, 0.34);
+  border-radius: 50%;
+  background: rgba(245, 178, 90, 0.08);
+  color: var(--gold);
+  font-weight: 900;
+}
+
+.shimmerCard {
+  background: linear-gradient(90deg, var(--card), rgba(255, 255, 255, 0.035), var(--card));
+  background-size: 200% 100%;
+  animation: shimmer 1.2s linear infinite;
+}
+
+@keyframes shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+
+@media (max-width: 720px) {
+  .twoColActions {
+    grid-template-columns: 1fr;
+  }
+
+  .accountDrawer {
+    border-left: 0;
+  }
+
+  .notificationHeaderRow,
+  .notificationItemRow {
+    align-items: stretch;
+  }
+
+  .notificationActions,
+  .notificationItemRow .btn {
+    width: 100%;
+  }
+
+  .notificationActions .btn {
+    flex: 1 1 120px;
+  }
+}
 .profileActions {
   display: grid;
   gap: 8px;
@@ -1143,10 +1360,6 @@ li {
   gap: 12px;
 }
 
-.notificationCard.unread {
-  border-color: rgba(232, 181, 74, 0.65);
-}
-
 .notificationCard h3 {
   color: var(--ink);
 }
@@ -1181,5 +1394,7 @@ li {
   flex: 1;
   height: 1px;
 }
+
+
 
 

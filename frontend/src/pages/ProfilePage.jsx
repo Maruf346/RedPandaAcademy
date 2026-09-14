@@ -38,6 +38,7 @@ export default function ProfilePage() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [avatarFile, setAvatarFile] = useState(null);
+  const [editOpen, setEditOpen] = useState(false);
   const [history, setHistory] = useState({ quizzes: [], grades: [], ready: false });
 
   const currentRank = RANKS[state.rank] || RANKS[0];
@@ -91,6 +92,20 @@ export default function ProfilePage() {
         </section>
       </main>
     );
+  }
+
+  function openEditor() {
+    setError("");
+    setNotice("");
+    setEditOpen(true);
+  }
+
+  function closeEditor() {
+    if (busy) return;
+    setEditOpen(false);
+    setAvatarFile(null);
+    setError("");
+    setNotice("");
   }
 
   async function handleLogout() {
@@ -197,61 +212,75 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        <div className="profileActions">
+        <div className="profileActions twoColActions">
+          <button className="btn block" onClick={openEditor} disabled={busy}>
+            Edit account
+          </button>
           <button className="btn block danger" onClick={handleLogout} disabled={busy}>
             Log out
           </button>
         </div>
       </section>
 
-      <section className="card">
-        <h2>Edit account</h2>
-        {error ? <div className="notice">{error}</div> : null}
-        {notice ? <div className="small green">{notice}</div> : null}
-        <form className="authForm" onSubmit={submitProfile}>
-          <div className="avatarEditor">
-            <div className="profileAvatar">
-              {avatarUrl ? <img src={avatarUrl} alt="" /> : initialsFor(user)}
+      {editOpen && (
+        <div className="drawerBackdrop" role="presentation" onClick={closeEditor}>
+          <aside className="accountDrawer" role="dialog" aria-modal="true" aria-labelledby="edit-account-title" onClick={(event) => event.stopPropagation()}>
+            <div className="drawerHeader">
+              <div>
+                <span className="profileEyebrow">Settings</span>
+                <h2 id="edit-account-title">Edit account</h2>
+              </div>
+              <button className="btn iconBtn ghost" type="button" onClick={closeEditor} disabled={busy} aria-label="Close account editor">
+                x
+              </button>
             </div>
-            <label className="btn small ghost avatarPicker">
-              Change photo
-              <input
-                name="profile_picture"
-                type="file"
-                accept="image/*"
-                onChange={(event) => setAvatarFile(event.target.files?.[0] || null)}
-              />
-            </label>
-          </div>
-          <Field label="Username">
-            <input value={user.username || ""} readOnly />
-          </Field>
-          <Field label="Full name">
-            <input name="full_name" defaultValue={user.full_name || ""} maxLength={100} />
-          </Field>
-          <Field label="Phone">
-            <input name="phone" defaultValue={user.phone || ""} />
-          </Field>
-          <button className="btn block" disabled={busy}>Save profile</button>
-        </form>
-      </section>
+            {error ? <div className="notice">{error}</div> : null}
+            {notice ? <div className="small green">{notice}</div> : null}
 
-      {canChangePassword && (
-        <section className="card">
-          <h2>Change password</h2>
-          <form className="authForm" onSubmit={submitPassword}>
-            <Field label="Current password">
-              <input name="old_password" type="password" autoComplete="current-password" required />
-            </Field>
-            <Field label="New password">
-              <input name="new_password" type="password" autoComplete="new-password" minLength={8} required />
-            </Field>
-            <Field label="Confirm password">
-              <input name="confirm_new_password" type="password" autoComplete="new-password" minLength={8} required />
-            </Field>
-            <button className="btn block" disabled={busy}>Change password</button>
-          </form>
-        </section>
+            <form className="authForm drawerPanel" onSubmit={submitProfile}>
+              <div className="avatarEditor">
+                <div className="profileAvatar">
+                  {avatarUrl ? <img src={avatarUrl} alt="" /> : initialsFor(user)}
+                </div>
+                <label className="btn small ghost avatarPicker">
+                  Change photo
+                  <input
+                    name="profile_picture"
+                    type="file"
+                    accept="image/*"
+                    onChange={(event) => setAvatarFile(event.target.files?.[0] || null)}
+                  />
+                </label>
+              </div>
+              <Field label="Username">
+                <input value={user.username || ""} readOnly />
+              </Field>
+              <Field label="Full name">
+                <input name="full_name" defaultValue={user.full_name || ""} maxLength={100} />
+              </Field>
+              <Field label="Phone">
+                <input name="phone" defaultValue={user.phone || ""} />
+              </Field>
+              <button className="btn block" disabled={busy}>Save profile</button>
+            </form>
+
+            {canChangePassword && (
+              <form className="authForm drawerPanel" onSubmit={submitPassword}>
+                <h3>Change password</h3>
+                <Field label="Current password">
+                  <input name="old_password" type="password" autoComplete="current-password" required />
+                </Field>
+                <Field label="New password">
+                  <input name="new_password" type="password" autoComplete="new-password" minLength={8} required />
+                </Field>
+                <Field label="Confirm password">
+                  <input name="confirm_new_password" type="password" autoComplete="new-password" minLength={8} required />
+                </Field>
+                <button className="btn block" disabled={busy}>Change password</button>
+              </form>
+            )}
+          </aside>
+        </div>
       )}
 
       <section className="card">
