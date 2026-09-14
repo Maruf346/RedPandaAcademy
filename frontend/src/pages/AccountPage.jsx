@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { formatApiError } from "../lib/api.js";
 
@@ -15,6 +15,8 @@ function Field({ label, children }) {
 export default function AccountPage() {
   const auth = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const nextPath = new URLSearchParams(location.search).get("next") || "/";
   const [mode, setMode] = useState("login");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -89,7 +91,7 @@ export default function AccountPage() {
             onSubmit={(event) =>
               handle(event, async (form) => {
                 await auth.login(form.get("email"), form.get("password"));
-                navigate("/");
+                navigate(nextPath);
               })
             }
           >
@@ -165,7 +167,7 @@ export default function AccountPage() {
                   registerEmail || form.get("email"),
                   form.get("otp")
                 );
-                navigate("/");
+                navigate(nextPath);
               })
             }
           >

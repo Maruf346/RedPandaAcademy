@@ -39,6 +39,12 @@ import { AI_NOTICE, aiComplete, aiMayWork } from "./lib/ai.js";
 import { decodeProgress, encodeProgress } from "./lib/progressCode.js";
 import { canUseStorage } from "./lib/storage.js";
 import { gradePrompt, kbPrompt, weaknessPrompt } from "./lib/prompts.js";
+import {
+  PANDA_CONVERSATION_KEY,
+  PANDA_PENDING_PROMPT_KEY,
+  loadBotConversation,
+  sendBotMessage
+} from "./lib/bot.js";
 
 const navItems = [
   { to: "/", icon: "🏠", label: "Home", end: true },
@@ -1735,53 +1741,130 @@ function QuizPage() {
 }
 
 function BotPage() {
+  const { user, ready } = useAuth();
+  const navigate = useNavigate();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState("");
+  const [conversationId, setConversationId] = useState(() => {
+    try {
+      return window.localStorage.getItem(PANDA_CONVERSATION_KEY) || "";
+    } catch {
+      return "";
+    }
+  });
 
-  async function send() {
-    if (!input.trim()) return;
-    const text = input.trim();
+  useEffect(() => {
+    if (!ready || !user) return undefined;
+    let cancelled = false;
+
+    async function boot() {
+      let activeConversationId = conversationId;
+      if (activeConversationId) {
+        try {
+          const conversation = await loadBotConversation(activeConversationId);
+          if (!cancelled) setMessages(conversation.messages || []);
+        } catch {
+          activeConversationId = "";
+          setConversationId("");
+          window.localStorage.removeItem(PANDA_CONVERSATION_KEY);
+        }
+      }
+
+      const pending = window.sessionStorage.getItem(PANDA_PENDING_PROMPT_KEY);
+      if (pending) {
+        window.sessionStorage.removeItem(PANDA_PENDING_PROMPT_KEY);
+        await send(pending, activeConversationId);
+      }
+    }
+
+    boot();
+    return () => {
+      cancelled = true;
+    };
+  }, [ready, user]);
+
+  async function send(textOverride, idOverride) {
+    const text = String(textOverride ?? input).trim();
+    if (!text) return;
+
+    if (!user) {
+      window.sessionStorage.setItem(PANDA_PENDING_PROMPT_KEY, text);
+      setNotice("Sign in first, then Panda Bot will continue with that message.");
+      navigate("/account?next=/bot");
+      return;
+    }
+
     const next = [...messages, { who: "user", text }];
     setMessages(next);
     setInput("");
     setBusy(true);
+    setNotice("");
     try {
-      const hist = next
-        .slice(-6)
-        .map((m) => `${m.who === "user" ? "REP" : "COACH"}: ${m.text}`)
-        .join("\n");
-      const response = await aiComplete(
-        `${kbPrompt()}\n\n=== CONVERSATION ===\n${hist}\nCOACH:`
-      );
-      setMessages([...next, { who: "bot", text: response.trim() }]);
-    } catch {
-      setMessages([
-        ...next,
-        { who: "bot", text: `I can’t reach the AI from here. ${AI_NOTICE}` }
-      ]);
+      const conversation = await sendBotMessage({
+        message: text,
+        conversationId: idOverride || conversationId,
+        playbookContext: kbPrompt()
+      });
+      setConversationId(conversation.id);
+      window.localStorage.setItem(PANDA_CONVERSATION_KEY, conversation.id);
+      setMessages(conversation.messages || next);
+    } catch (err) {
+      if (err.status === 401) {
+        window.sessionStorage.setItem(PANDA_PENDING_PROMPT_KEY, text);
+        navigate("/account?next=/bot");
+        return;
+      }
+      if (err.payload?.id && err.payload?.messages) {
+        setConversationId(err.payload.id);
+        window.localStorage.setItem(PANDA_CONVERSATION_KEY, err.payload.id);
+        setMessages(err.payload.messages);
+      } else {
+        setMessages([
+          ...next,
+          { who: "bot", text: `I can’t reach the backend chat service. ${AI_NOTICE}` }
+        ]);
+      }
     } finally {
       setBusy(false);
       window.setTimeout(() => window.scrollTo(0, document.body.scrollHeight), 0);
     }
   }
 
+  function startNewChat() {
+    setConversationId("");
+    setMessages([]);
+    setNotice("");
+    window.localStorage.removeItem(PANDA_CONVERSATION_KEY);
+  }
+
   return (
     <main className="stack">
       <Card>
-        <h2 className="botTitle">
-          <img src="/logo.png" alt="" /> Red Panda Bot
-        </h2>
-        <p className="small muted">
-          Docs-only coach. Ask about any step, script, scenario, or KPI. If it’s
-          not in the playbook, it says so.
-        </p>
+        <div className="sectionTitleRow">
+          <div>
+            <h2 className="botTitle">
+              <img src="/logo.png" alt="" /> Red Panda Bot
+            </h2>
+            <p className="small muted">
+              Docs-only coach. Ask about any step, script, scenario, or KPI. If it’s
+              not in the playbook, it says so.
+            </p>
+          </div>
+          {user && (
+            <button className="btn small ghost" type="button" onClick={startNewChat}>
+              New chat
+            </button>
+          )}
+        </div>
       </Card>
-      {!aiMayWork() && <Notice>{AI_NOTICE}</Notice>}
+      {!user && <Notice>Sign in to chat. Your message will be saved and sent after login.</Notice>}
+      {notice && <Notice>{notice}</Notice>}
       <div className="chat">
         {messages.length ? (
           messages.map((message, index) => (
-            <div className={cx("msg", message.who)} key={index}>
+            <div className={cx("msg", message.who)} key={message.id || index}>
               {message.text}
             </div>
           ))
@@ -1802,16 +1885,15 @@ function BotPage() {
           onKeyDown={(event) => {
             if (event.key === "Enter") send();
           }}
-          placeholder="Ask the playbook…"
+          placeholder={user ? "Ask the playbook…" : "Sign in required to chat…"}
         />
-        <button className="btn" disabled={busy} onClick={send}>
-          Send
+        <button className="btn" disabled={busy} onClick={() => send()}>
+          {user ? "Send" : "Sign in"}
         </button>
       </div>
     </main>
   );
 }
-
 function parseGrade(text) {
   const clean = text.replace(/```json|```/g, "").trim();
   const start = clean.indexOf("{");

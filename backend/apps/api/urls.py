@@ -30,6 +30,7 @@ from apps.grades.views import (
     CallGradeViewSet,
     GradeKpiScoreViewSet,
 )
+from apps.bot.views import BotConversationViewSet, BotMessageView
 
 # Single router for all viewsets (avoids format suffix converter conflicts)
 router = DefaultRouter()
@@ -53,12 +54,17 @@ router.register(r'grades/quiz-attempts', QuizAttemptViewSet, basename='quiz-atte
 router.register(r'grades/call-grades', CallGradeViewSet, basename='call-grade')
 router.register(r'grades/kpi-scores', GradeKpiScoreViewSet, basename='grade-kpi-score')
 
+# Panda Bot
+router.register(r'bot/conversations', BotConversationViewSet, basename='bot-conversation')
+
 urlpatterns = [
     # User auth endpoints (existing path-based routes)
     path('users/', include('apps.users.urls')),
 
     path('progression/snapshot/', ProgressSnapshotView.as_view(), name='progress-snapshot'),
     path('progression/progress/', UserProgressView.as_view(), name='progress'),
+
+    path('bot/messages/', BotMessageView.as_view(), name='bot-message'),
 
     path('protocol/', UserProtocolView.as_view(), name='protocol'),
     path('protocol/log-recall/', LogRecallView.as_view(), name='protocol-log-recall'),

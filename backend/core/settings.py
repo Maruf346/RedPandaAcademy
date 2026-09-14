@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     'apps.progression',
     'apps.protocol',
     'apps.grades',
+    'apps.bot',
 ]
 
 MIDDLEWARE = [
@@ -359,6 +360,7 @@ SPECTACULAR_SETTINGS = {
         {'name': 'progression', 'description': 'Rank, snapshot sync, assignments, cards, drills, and stats'},
         {'name': 'protocol', 'description': 'Training protocol phase and daily/weekly logs'},
         {'name': 'grades', 'description': 'Quiz attempts and AI call grades'},
+        {'name': 'bot', 'description': 'Authenticated Panda Bot conversations and messages'},
         {'name': 'notifications', 'description': 'In-app player notifications'},
     ],
     'SECURITY': [{'bearerAuth': []}],
@@ -472,3 +474,6 @@ PASSWORD_RESET_TOKEN_EXPIRY_SECONDS = 900  # 15 minutes for reset token
 
 # Channels Configuration (for WebSocket)
 ASGI_APPLICATION = 'core.asgi.application'
+
+
+ANTHROPIC_MODEL = os.getenv('ANTHROPIC_MODEL', 'claude-3-5-sonnet-20241022')
