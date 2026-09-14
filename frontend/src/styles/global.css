@@ -1499,9 +1499,298 @@ li {
   height: 1px;
 }
 
+/* PWA/mobile app polish */
+html {
+  min-width: 320px;
+  min-height: 100%;
+  background: var(--bg);
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
 
+body {
+  min-height: 100dvh;
+  padding-bottom: calc(78px + env(safe-area-inset-bottom));
+  overscroll-behavior-y: none;
+  -webkit-tap-highlight-color: transparent;
+}
 
+button,
+a,
+input,
+select,
+textarea {
+  touch-action: manipulation;
+}
 
+img,
+video,
+canvas,
+svg {
+  max-width: 100%;
+}
 
+.app {
+  width: min(100%, 820px);
+  padding: max(12px, env(safe-area-inset-top)) 14px 18px;
+}
 
+.top {
+  position: sticky;
+  z-index: 45;
+  top: 0;
+  margin: -12px -14px 8px;
+  padding: calc(10px + env(safe-area-inset-top)) 14px 12px;
+  background: rgba(23, 25, 30, 0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(52, 59, 71, 0.65);
+}
 
+.top > div:not(.topMeta) {
+  min-width: 0;
+}
+
+.top h1,
+.top p {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card {
+  overflow-wrap: anywhere;
+}
+
+.btn {
+  min-height: 44px;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.btn.small {
+  min-height: 38px;
+}
+
+input,
+select,
+textarea,
+.qopt,
+.acc > button,
+.botHistoryItem {
+  min-height: 44px;
+}
+
+.tabbtns,
+.weeklyBtns,
+.progressBtns,
+.scenarioBtns,
+.dailyBtns,
+.trainPicker,
+.trainFormat {
+  overflow-x: auto;
+  flex-wrap: nowrap;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.tabbtns::-webkit-scrollbar,
+.weeklyBtns::-webkit-scrollbar,
+.progressBtns::-webkit-scrollbar,
+.scenarioBtns::-webkit-scrollbar,
+.dailyBtns::-webkit-scrollbar,
+.trainPicker::-webkit-scrollbar,
+.trainFormat::-webkit-scrollbar,
+.botHistoryList::-webkit-scrollbar {
+  display: none;
+}
+
+.tabbtns .btn,
+.weeklyBtns .btn,
+.progressBtns .btn,
+.scenarioBtns .btn,
+.dailyBtns .btn,
+.trainPicker .btn,
+.trainFormat .btn {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.tabs {
+  min-height: calc(64px + env(safe-area-inset-bottom));
+  background: rgba(20, 22, 26, 0.96);
+  backdrop-filter: blur(12px);
+}
+
+.tabs a {
+  min-height: 48px;
+}
+
+.chat {
+  max-height: min(58dvh, 560px);
+  overflow-y: auto;
+  padding-right: 2px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.msg {
+  max-width: min(88%, 620px);
+}
+
+.accountDrawer {
+  height: 100dvh;
+  padding-bottom: calc(18px + env(safe-area-inset-bottom));
+}
+
+@media (max-width: 640px) {
+  body {
+    font-size: 15px;
+  }
+
+  .app {
+    padding-inline: 10px;
+  }
+
+  .top {
+    gap: 9px;
+    margin-inline: -10px;
+    padding-inline: 10px;
+  }
+
+  .mark {
+    width: 34px;
+    height: 34px;
+  }
+
+  .top h1 {
+    font-size: 16px;
+  }
+
+  .topMeta {
+    gap: 6px;
+  }
+
+  .rankchip,
+  .accountchip {
+    max-width: 118px;
+    padding: 6px 9px;
+    font-size: 11px;
+  }
+
+  .notificationchip {
+    width: 32px;
+    height: 32px;
+  }
+
+  .card {
+    border-radius: 12px;
+    padding: 14px;
+  }
+
+  .grid2,
+  .grid3,
+  .premiumProfileGrid,
+  .profileGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .splitCard,
+  .kitDoc,
+  .sectionTitleRow {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .splitCard .btn,
+  .kitDoc .btn,
+  .sectionTitleRow > .btn,
+  .sectionTitleRow .btn {
+    width: 100%;
+  }
+
+  .homeHero img {
+    width: min(82%, 210px);
+  }
+
+  .big {
+    font-size: 23px;
+  }
+
+  .rankEmoji,
+  .topRepIcon,
+  .quizFailIcon {
+    font-size: 36px;
+  }
+
+  .skeletonList {
+    columns: 1;
+  }
+
+  .botInputRow {
+    position: sticky;
+    bottom: calc(70px + env(safe-area-inset-bottom));
+    z-index: 25;
+    align-items: stretch;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: rgba(23, 25, 30, 0.94);
+    padding: 8px;
+    backdrop-filter: blur(10px);
+  }
+
+  .botInputRow .btn {
+    flex: 0 0 auto;
+    padding-inline: 14px;
+  }
+
+  .msg {
+    max-width: 94%;
+  }
+
+  .profileHeader,
+  .avatarEditor {
+    align-items: flex-start;
+  }
+
+  .profileAvatar.large {
+    width: 64px;
+    height: 64px;
+  }
+
+  .notificationActions .btn,
+  .botHistoryActions .btn {
+    flex: 1 1 0;
+  }
+}
+
+@media (max-width: 390px) {
+  .top p {
+    display: none;
+  }
+
+  .rankchip {
+    display: none;
+  }
+
+  .tabs a {
+    padding-inline: 3px;
+    font-size: 10px;
+  }
+
+  .tabs a .ico,
+  .tabs a .tabLogo {
+    width: 18px;
+    height: 18px;
+    font-size: 18px;
+  }
+
+  .btn {
+    padding-inline: 12px;
+  }
+
+  .botInputRow {
+    gap: 6px;
+  }
+}

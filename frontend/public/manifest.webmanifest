@@ -1,0 +1,26 @@
+{
+  "name": "Red Panda Closer Academy",
+  "short_name": "Red Panda",
+  "description": "Mobile-first training app for Red Panda Closer Academy.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "browser"],
+  "background_color": "#17191e",
+  "theme_color": "#17191e",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
