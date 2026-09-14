@@ -45,6 +45,7 @@ import {
   loadBotConversation,
   sendBotMessage
 } from "./lib/bot.js";
+import { saveCallGrade, saveQuizAttempt } from "./lib/records.js";
 
 const navItems = [
   { to: "/", icon: "🏠", label: "Home", end: true },
@@ -1529,11 +1530,14 @@ function ProtocolPage() {
 
 function QuizPage() {
   const { state, dispatch } = useProgress();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [quizRun, setQuizRun] = useState(null);
+  const [attemptSaved, setAttemptSaved] = useState(false);
   const quiz = QUIZZES[state.rank];
 
   function startQuiz() {
+    setAttemptSaved(false);
     setQuizRun({ idx: 0, correct: 0, picked: null, review: [] });
   }
 
@@ -1590,14 +1594,26 @@ function QuizPage() {
   }
 
   useEffect(() => {
-    if (quizRun && quiz && quizRun.idx >= quiz.qs.length) {
+    if (!quizRun || !quiz || quizRun.idx < quiz.qs.length) return;
+    const scorePercent = Math.round((100 * quizRun.correct) / quiz.qs.length);
+    if ((state.best[state.rank] || 0) < scorePercent) {
       dispatch({
         type: "SET_BEST",
         qi: state.rank,
-        score: Math.round((100 * quizRun.correct) / quiz.qs.length)
+        score: scorePercent
       });
     }
-  }, [dispatch, quiz, quizRun, state.rank]);
+    if (!user || attemptSaved) return;
+    setAttemptSaved(true);
+    saveQuizAttempt({
+      quiz,
+      quizIndex: state.rank,
+      correctCount: quizRun.correct,
+      scorePercent,
+      passed: scorePercent >= 80,
+      missedTopics: quizRun.review
+    }).catch(() => {});
+  }, [attemptSaved, dispatch, quiz, quizRun, state.best, state.rank, user]);
 
   if (state.rank >= 3 && !quizRun) {
     return (
@@ -1980,6 +1996,7 @@ function RenderGrade({ grade }) {
 
 function GradePage() {
   const { state, dispatch } = useProgress();
+  const { user } = useAuth();
   const [transcript, setTranscript] = useState("");
   const [busy, setBusy] = useState(false);
   const grade = state.lastGrade;
@@ -1992,7 +2009,11 @@ function GradePage() {
     setBusy(true);
     try {
       const text = await aiComplete(gradePrompt(transcript));
-      dispatch({ type: "RECORD_GRADE", grade: { ...parseGrade(text), transcript } });
+      const grade = { ...parseGrade(text), transcript };
+      dispatch({ type: "RECORD_GRADE", grade });
+      if (user) {
+        saveCallGrade(grade).catch(() => {});
+      }
     } catch {
       alert(`Grading didn’t come back. ${AI_NOTICE}`);
     } finally {
@@ -2059,3 +2080,4 @@ export default function App() {
     </AuthProvider>
   );
 }
+

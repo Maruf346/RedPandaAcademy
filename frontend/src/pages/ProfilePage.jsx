@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { formatApiError } from "../lib/api.js";
+import { listCallGrades, listQuizAttempts } from "../lib/records.js";
 
 function Field({ label, children }) {
   return (
@@ -19,7 +20,28 @@ export default function ProfilePage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [history, setHistory] = useState({ quizzes: [], grades: [], ready: false });
 
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadHistory() {
+      if (!user) return;
+      try {
+        const [quizzes, grades] = await Promise.all([
+          listQuizAttempts(5),
+          listCallGrades(5)
+        ]);
+        if (!cancelled) setHistory({ quizzes, grades, ready: true });
+      } catch {
+        if (!cancelled) setHistory({ quizzes: [], grades: [], ready: true });
+      }
+    }
+    loadHistory();
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
   if (!user) {
     return (
       <main className="stack">

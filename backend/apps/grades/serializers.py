@@ -55,6 +55,16 @@ class CallGradeSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'graded_at']
 
     def create(self, validated_data):
+        user = validated_data.get('user')
+        if user:
+            existing = CallGrade.objects.filter(
+                user=user,
+                transcript=validated_data.get('transcript', ''),
+                summary=validated_data.get('summary', ''),
+                scorecard=validated_data.get('scorecard') or [],
+            ).first()
+            if existing:
+                return existing
         grade = super().create(validated_data)
         sync_grade_kpi_scores(grade)
         return grade
@@ -66,3 +76,9 @@ class CallGradeSerializer(serializers.ModelSerializer):
         if 'assigned_drills' not in data and data.get('drills') is not None:
             data['assigned_drills'] = data.get('drills')
         return super().to_internal_value(data)
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data['scenarioTags'] = data.get('scenario_tags') or []
+        data['drills'] = data.get('assigned_drills') or []
+        return data
