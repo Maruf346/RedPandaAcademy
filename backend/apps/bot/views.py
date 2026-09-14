@@ -1,5 +1,7 @@
 import logging
 
+from django.db.models import Count
+from django.utils.dateparse import parse_datetime
 from rest_framework import mixins, status, viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -7,7 +9,13 @@ from rest_framework.views import APIView
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiResponse
 
 from .models import BotConversation, BotMessage
-from .serializers import AIGradeCallSerializer, AITrainWeaknessSerializer, BotConversationSerializer, BotSendMessageSerializer
+from .serializers import (
+    AIGradeCallSerializer,
+    AITrainWeaknessSerializer,
+    BotConversationListSerializer,
+    BotConversationSerializer,
+    BotSendMessageSerializer,
+)
 from .services import complete_ai_text, complete_bot_reply
 
 logger = logging.getLogger(__name__)
@@ -25,8 +33,27 @@ class BotConversationViewSet(
     permission_classes = [IsAuthenticated]
     serializer_class = BotConversationSerializer
 
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return BotConversationListSerializer
+        return BotConversationSerializer
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        try:
+            limit = int(self.request.query_params.get('message_limit', 30))
+        except (TypeError, ValueError):
+            limit = 30
+        context['message_limit'] = max(10, min(80, limit))
+        before = self.request.query_params.get('before')
+        context['before'] = parse_datetime(before) if before else None
+        return context
+
     def get_queryset(self):
-        return BotConversation.objects.filter(user=self.request.user).prefetch_related('messages')
+        queryset = BotConversation.objects.filter(user=self.request.user)
+        if self.action == 'list':
+            return queryset.annotate(message_count=Count('messages'))
+        return queryset.prefetch_related('messages')
 
 
 class BotMessageView(APIView):
@@ -97,7 +124,7 @@ class BotMessageView(APIView):
             content=reply,
         )
         conversation.save(update_fields=['updated_at'])
-        return Response(BotConversationSerializer(conversation).data, status=status.HTTP_200_OK)
+        return Response(BotConversationSerializer(conversation, context={'message_limit': 30}).data, status=status.HTTP_200_OK)
 
 
 class AIGradeCallView(APIView):
@@ -148,4 +175,5 @@ class AITrainWeaknessView(APIView):
             logger.exception('Weakness training provider failed: %s', exc)
             return Response({'error': 'AI backend unavailable'}, status=status.HTTP_502_BAD_GATEWAY)
         return Response({'text': text}, status=status.HTTP_200_OK)
+
 

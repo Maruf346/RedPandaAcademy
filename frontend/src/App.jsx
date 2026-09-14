@@ -42,6 +42,7 @@ import { gradePrompt, playbookContext, weaknessPrompt } from "./lib/prompts.js";
 import {
   PANDA_CONVERSATION_KEY,
   PANDA_PENDING_PROMPT_KEY,
+  listBotConversations,
   loadBotConversation,
   sendBotMessage
 } from "./lib/bot.js";
@@ -1843,6 +1844,11 @@ function QuizPage() {
   );
 }
 
+function botConversationDate(value) {
+  if (!value) return "";
+  return new Date(value).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
 function BotPage() {
   const { user, ready } = useAuth();
   const navigate = useNavigate();
@@ -1850,6 +1856,11 @@ function BotPage() {
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
+  const [conversations, setConversations] = useState([]);
+  const [historyCollapsed, setHistoryCollapsed] = useState(false);
+  const [historyBusy, setHistoryBusy] = useState(false);
+  const [hasMoreMessages, setHasMoreMessages] = useState(false);
+  const [nextBefore, setNextBefore] = useState(null);
   const [conversationId, setConversationId] = useState(() => {
     try {
       return window.localStorage.getItem(PANDA_CONVERSATION_KEY) || "";
@@ -1858,20 +1869,80 @@ function BotPage() {
     }
   });
 
+  async function refreshConversations() {
+    if (!user) {
+      setConversations([]);
+      return [];
+    }
+    const list = await listBotConversations(20);
+    setConversations(list);
+    return list;
+  }
+
+  async function openConversation(id, options = {}) {
+    if (!id) return null;
+    setHistoryBusy(true);
+    setNotice("");
+    try {
+      const conversation = await loadBotConversation(id, {
+        messageLimit: 30,
+        before: options.before || null
+      });
+      setConversationId(conversation.id);
+      window.localStorage.setItem(PANDA_CONVERSATION_KEY, conversation.id);
+      setHasMoreMessages(Boolean(conversation.has_more_messages));
+      setNextBefore(conversation.next_before || null);
+      setMessages((current) => options.appendOlder
+        ? [...(conversation.messages || []), ...current]
+        : conversation.messages || []);
+      return conversation;
+    } catch (err) {
+      if (!options.appendOlder) {
+        setConversationId("");
+        setMessages([]);
+        window.localStorage.removeItem(PANDA_CONVERSATION_KEY);
+      }
+      setNotice(err.payload ? formatApiError(err.payload) : "Could not load that chat history.");
+      return null;
+    } finally {
+      setHistoryBusy(false);
+    }
+  }
+
   useEffect(() => {
     if (!ready || !user) return undefined;
     let cancelled = false;
 
     async function boot() {
       let activeConversationId = conversationId;
+      try {
+        const list = await listBotConversations(20);
+        if (cancelled) return;
+        setConversations(list);
+        if (!activeConversationId && list[0]?.id) activeConversationId = list[0].id;
+      } catch {
+        if (!cancelled) setConversations([]);
+      }
+
       if (activeConversationId) {
         try {
-          const conversation = await loadBotConversation(activeConversationId);
-          if (!cancelled) setMessages(conversation.messages || []);
+          const conversation = await loadBotConversation(activeConversationId, { messageLimit: 30 });
+          if (!cancelled) {
+            setConversationId(conversation.id);
+            window.localStorage.setItem(PANDA_CONVERSATION_KEY, conversation.id);
+            setMessages(conversation.messages || []);
+            setHasMoreMessages(Boolean(conversation.has_more_messages));
+            setNextBefore(conversation.next_before || null);
+          }
         } catch {
           activeConversationId = "";
-          setConversationId("");
-          window.localStorage.removeItem(PANDA_CONVERSATION_KEY);
+          if (!cancelled) {
+            setConversationId("");
+            setMessages([]);
+            setHasMoreMessages(false);
+            setNextBefore(null);
+            window.localStorage.removeItem(PANDA_CONVERSATION_KEY);
+          }
         }
       }
 
@@ -1913,6 +1984,9 @@ function BotPage() {
       setConversationId(conversation.id);
       window.localStorage.setItem(PANDA_CONVERSATION_KEY, conversation.id);
       setMessages(conversation.messages || next);
+      setHasMoreMessages(Boolean(conversation.has_more_messages));
+      setNextBefore(conversation.next_before || null);
+      refreshConversations().catch(() => {});
     } catch (err) {
       if (err.status === 401) {
         window.sessionStorage.setItem(PANDA_PENDING_PROMPT_KEY, text);
@@ -1923,6 +1997,9 @@ function BotPage() {
         setConversationId(err.payload.id);
         window.localStorage.setItem(PANDA_CONVERSATION_KEY, err.payload.id);
         setMessages(err.payload.messages);
+        setHasMoreMessages(Boolean(err.payload.has_more_messages));
+        setNextBefore(err.payload.next_before || null);
+        refreshConversations().catch(() => {});
       } else {
         setMessages([
           ...next,
@@ -1938,6 +2015,8 @@ function BotPage() {
   function startNewChat() {
     setConversationId("");
     setMessages([]);
+    setHasMoreMessages(false);
+    setNextBefore(null);
     setNotice("");
     window.localStorage.removeItem(PANDA_CONVERSATION_KEY);
   }
@@ -1955,44 +2034,91 @@ function BotPage() {
               not in the playbook, it says so.
             </p>
           </div>
-          {user && (
-            <button className="btn small ghost" type="button" onClick={startNewChat}>
-              New chat
-            </button>
-          )}
+
         </div>
       </Card>
       {!user && <Notice>Sign in to chat. Your message will be saved and sent after login.</Notice>}
       {notice && <Notice>{notice}</Notice>}
-      <div className="chat">
-        {messages.length ? (
-          messages.map((message, index) => (
-            <div className={cx("msg", message.who)} key={message.id || index}>
-              {message.text}
+      <div className={cx("botWorkspace", historyCollapsed && "historyClosed")}>
+        {user && (
+          <aside className="botHistoryPanel">
+            <div className="botHistoryHeader">
+              <div>
+                <h3>Chat history</h3>
+                {!historyCollapsed && (
+                  <p className="small muted">{conversations.length} recent chat{conversations.length === 1 ? "" : "s"}</p>
+                )}
+              </div>
+              <div className="botHistoryActions">
+                {!historyCollapsed && (
+                  <button className="btn small" type="button" onClick={startNewChat}>
+                    New chat
+                  </button>
+                )}
+                <button className="btn small ghost" type="button" onClick={() => setHistoryCollapsed((value) => !value)}>
+                  {historyCollapsed ? "Show" : "Collapse"}
+                </button>
+              </div>
             </div>
-          ))
-        ) : (
-          <div className="msg bot">
-            What do you want to sharpen? Try: “Give me the parachute script” ·
-            “What breaks KPI 15?” · “Homeowner said her brother roofs — what’s
-            the play?”
-          </div>
+            {!historyCollapsed && (
+              <div className="botHistoryList">
+
+                {conversations.map((conversation) => (
+                  <button
+                    className={cx("botHistoryItem", conversation.id === conversationId && "active")}
+                    type="button"
+                    key={conversation.id}
+                    disabled={historyBusy || conversation.id === conversationId}
+                    onClick={() => openConversation(conversation.id)}
+                  >
+                    <strong>{conversation.title || "Untitled chat"}</strong>
+                    <span>
+                      {conversation.message_count || 0} messages · {botConversationDate(conversation.updated_at)}
+                    </span>
+                  </button>
+                ))}
+                {!conversations.length && <p className="small muted">No saved chats yet.</p>}
+              </div>
+            )}
+          </aside>
         )}
-        {busy && <div className="msg bot">…thinking</div>}
-      </div>
-      <div className="botInputRow">
-        <input
-          type="text"
-          value={input}
-          onChange={(event) => setInput(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") send();
-          }}
-          placeholder={user ? "Ask the playbook…" : "Sign in required to chat…"}
-        />
-        <button className="btn" disabled={busy} onClick={() => send()}>
-          {user ? "Send" : "Sign in"}
-        </button>
+        <section className="botChatPanel">
+          <div className="chat">
+            {hasMoreMessages && (
+              <button className="btn small ghost loadOlderBtn" type="button" disabled={historyBusy} onClick={() => openConversation(conversationId, { before: nextBefore, appendOlder: true })}>
+                {historyBusy ? "Loading..." : "Load older messages"}
+              </button>
+            )}
+            {messages.length ? (
+              messages.map((message, index) => (
+                <div className={cx("msg", message.who)} key={message.id || index}>
+                  {message.text}
+                </div>
+              ))
+            ) : (
+              <div className="msg bot">
+                What do you want to sharpen? Try: “Give me the parachute script” ·
+                “What breaks KPI 15?” · “Homeowner said her brother roofs — what’s
+                the play?”
+              </div>
+            )}
+            {busy && <div className="msg bot">…thinking</div>}
+          </div>
+          <div className="botInputRow">
+            <input
+              type="text"
+              value={input}
+              onChange={(event) => setInput(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") send();
+              }}
+              placeholder={user ? "Ask the playbook…" : "Sign in required to chat…"}
+            />
+            <button className="btn" disabled={busy} onClick={() => send()}>
+              {user ? "Send" : "Sign in"}
+            </button>
+          </div>
+        </section>
       </div>
     </main>
   );
@@ -2171,6 +2297,8 @@ export default function App() {
     </AuthProvider>
   );
 }
+
+
 
 
 

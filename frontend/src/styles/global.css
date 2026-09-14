@@ -1164,6 +1164,110 @@ code {
   background: #2a1d1d;
 }
 
+
+.botWorkspace {
+  display: grid;
+  gap: 12px;
+}
+
+.botWorkspace.historyClosed {
+  gap: 10px;
+}
+
+.botHistoryPanel,
+.botChatPanel {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--card);
+  padding: 12px;
+}
+
+.botHistoryPanel {
+  overflow: hidden;
+}
+
+.botHistoryHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.botHistoryHeader h3,
+.botHistoryHeader p {
+  margin: 0;
+}
+
+.botHistoryActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.botHistoryList {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.botHistoryItem {
+  flex: 0 0 min(260px, 78vw);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--card2);
+  color: var(--ink);
+  padding: 10px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.botHistoryItem strong,
+.botHistoryItem span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.botHistoryItem strong {
+  font-size: 13px;
+}
+
+.botHistoryItem span {
+  margin-top: 4px;
+  color: var(--dim);
+  font-size: 11.5px;
+}
+
+.botHistoryItem.active {
+  border-color: rgba(245, 178, 90, 0.58);
+  background: rgba(245, 178, 90, 0.08);
+}
+
+.loadOlderBtn {
+  align-self: center;
+  margin-bottom: 2px;
+}
+
+.botChatPanel .chat {
+  min-height: 320px;
+}
+
+@media (max-width: 560px) {
+  .botHistoryHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .botHistoryActions,
+  .botHistoryActions .btn {
+    width: 100%;
+  }
+}
+
 .chat {
   display: flex;
   flex-direction: column;
@@ -1394,6 +1498,9 @@ li {
   flex: 1;
   height: 1px;
 }
+
+
+
 
 
 
