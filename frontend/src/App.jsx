@@ -1118,6 +1118,7 @@ function weaknessAutoText(state) {
 function TrainWeakness() {
   const { state, dispatch } = useProgress();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [tt, setTt] = useState("scenario");
   const [tv, setTv] = useState("1");
   const [free, setFree] = useState("");
@@ -1151,6 +1152,10 @@ function TrainWeakness() {
           ? "No weakness data yet — take a quiz or grade a call first, or pick a target manually."
           : "Describe or pick what you want to train."
       );
+      return;
+    }
+    if (!user) {
+      navigate("/account?next=/drill/train");
       return;
     }
     setBusy(true);
@@ -2045,6 +2050,7 @@ function RenderGrade({ grade }) {
 function GradePage() {
   const { state, dispatch } = useProgress();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [transcript, setTranscript] = useState("");
   const [busy, setBusy] = useState(false);
   const grade = state.lastGrade;
@@ -2052,6 +2058,10 @@ function GradePage() {
   async function gradeCall() {
     if (transcript.trim().length < 200) {
       alert("Paste the full transcript — a real one. Short snippets can’t be graded on 22 KPIs.");
+      return;
+    }
+    if (!user) {
+      navigate("/account?next=/grade");
       return;
     }
     setBusy(true);
@@ -2128,6 +2138,9 @@ export default function App() {
     </AuthProvider>
   );
 }
+
+
+
 
 
 

@@ -10,6 +10,8 @@ from .models import BotConversation, BotMessage
 from .serializers import BotConversationSerializer, BotSendMessageSerializer
 from .services import complete_bot_reply
 
+logger = logging.getLogger(__name__)
+
 
 @extend_schema_view(
     list=extend_schema(tags=['bot'], summary='List Panda Bot conversations'),
@@ -96,3 +98,4 @@ class BotMessageView(APIView):
         )
         conversation.save(update_fields=['updated_at'])
         return Response(BotConversationSerializer(conversation).data, status=status.HTTP_200_OK)
+
