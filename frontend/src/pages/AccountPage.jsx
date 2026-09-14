@@ -1,7 +1,57 @@
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { formatApiError } from "../lib/api.js";
+
+
+function GoogleSignInButton({ disabled, onCredential, onError }) {
+  const buttonRef = useRef(null);
+  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
+  useEffect(() => {
+    if (!clientId || !buttonRef.current) return undefined;
+    let cancelled = false;
+
+    function render() {
+      if (cancelled || !window.google?.accounts?.id || !buttonRef.current) return;
+      window.google.accounts.id.initialize({
+        client_id: clientId,
+        callback: (response) => {
+          if (response?.credential) onCredential(response.credential);
+          else onError(new Error("Google did not return a credential."));
+        }
+      });
+      window.google.accounts.id.renderButton(buttonRef.current, {
+        theme: "outline",
+        size: "large",
+        width: buttonRef.current.offsetWidth || 320
+      });
+    }
+
+    if (window.google?.accounts?.id) {
+      render();
+    } else {
+      const existing = document.querySelector('script[src="https://accounts.google.com/gsi/client"]');
+      const script = existing || document.createElement("script");
+      script.src = "https://accounts.google.com/gsi/client";
+      script.async = true;
+      script.defer = true;
+      script.onload = render;
+      script.onerror = () => onError(new Error("Google Sign-In failed to load."));
+      if (!existing) document.head.appendChild(script);
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [clientId, onCredential, onError]);
+
+  if (!clientId) {
+    return <p className="small muted">Google Sign-In needs VITE_GOOGLE_CLIENT_ID.</p>;
+  }
+
+  return <div className={disabled ? "googleLogin disabled" : "googleLogin"} ref={buttonRef} />;
+}
 
 function Field({ label, children }) {
   return (
@@ -24,6 +74,24 @@ export default function AccountPage() {
   const [registerEmail, setRegisterEmail] = useState("");
   const [resetEmail, setResetEmail] = useState("");
   const [resetToken, setResetToken] = useState("");
+
+  const handleGoogleCredential = useCallback(async (credential) => {
+    setBusy(true);
+    setError("");
+    setNotice("");
+    try {
+      await auth.googleLogin(credential);
+      navigate(nextPath);
+    } catch (err) {
+      setError(err.payload ? formatApiError(err.payload) : err.message);
+    } finally {
+      setBusy(false);
+    }
+  }, [auth, navigate, nextPath]);
+
+  const handleGoogleError = useCallback((err) => {
+    setError(err.message || "Google Sign-In failed.");
+  }, []);
 
   async function handle(event, fn) {
     event.preventDefault();
@@ -84,6 +152,17 @@ export default function AccountPage() {
 
         {error ? <div className="notice">{error}</div> : null}
         {notice ? <div className="small green">{notice}</div> : null}
+
+        {(mode === "login" || mode === "register") && (
+          <>
+            <GoogleSignInButton
+              disabled={busy}
+              onCredential={handleGoogleCredential}
+              onError={handleGoogleError}
+            />
+            <div className="authDivider"><span>or</span></div>
+          </>
+        )}
 
         {mode === "login" && (
           <form
@@ -295,3 +374,4 @@ export default function AccountPage() {
     </main>
   );
 }
+

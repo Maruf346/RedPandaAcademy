@@ -1055,3 +1055,27 @@ li {
     flex-direction: column;
   }
 }
+.googleLogin {
+  min-height: 44px;
+  margin: 14px 0 10px;
+}
+.googleLogin.disabled {
+  opacity: 0.6;
+  pointer-events: none;
+}
+.authDivider {
+  align-items: center;
+  color: var(--muted);
+  display: flex;
+  font-size: 12px;
+  gap: 10px;
+  margin: 12px 0;
+}
+.authDivider::before,
+.authDivider::after {
+  background: var(--line);
+  content: "";
+  flex: 1;
+  height: 1px;
+}
+

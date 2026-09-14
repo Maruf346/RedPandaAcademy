@@ -310,6 +310,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Application URLs
 BASE_URL = os.getenv('BASE_URL', 'http://127.0.0.1:8000/')
 FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:3000')
+GOOGLE_WEB_CLIENT_ID = os.getenv('GOOGLE_WEB_CLIENT_ID', '')
 
 for extra in (FRONTEND_URL.rstrip('/'), BASE_URL.rstrip('/')):
     if extra and extra not in CSRF_TRUSTED_ORIGINS:
@@ -477,3 +478,4 @@ ASGI_APPLICATION = 'core.asgi.application'
 
 
 ANTHROPIC_MODEL = os.getenv('ANTHROPIC_MODEL', 'claude-3-5-sonnet-20241022')
+

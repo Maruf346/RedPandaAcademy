@@ -69,3 +69,4 @@ $RECYCLE.BIN/
 
 .vite-dev.pid
 dist/
+.env

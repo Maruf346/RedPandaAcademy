@@ -14,7 +14,6 @@ from google.auth.transport import requests
 import requests as req
 from django.conf import settings
 from rest_framework_simplejwt.tokens import RefreshToken
-from django.core.files.base import ContentFile
 
 from apps.notifications.services import NotificationTemplates
 
@@ -337,95 +336,82 @@ class ChangePasswordSerializer(serializers.Serializer):
 
 class GoogleOAuthSerializer(serializers.Serializer):
     id_token = serializers.CharField(required=True)
-    
+
     def validate(self, attrs):
         token = attrs.get('id_token')
-        
+        client_id = getattr(settings, 'GOOGLE_WEB_CLIENT_ID', '')
+        if not client_id:
+            raise serializers.ValidationError('Google login is not configured.')
+
         try:
             google_user = id_token.verify_oauth2_token(
                 token,
                 requests.Request(),
-                settings.GOOGLE_WEB_CLIENT_ID   # For mobile: Web client id is req.
+                client_id,
             )
         except Exception:
-            raise serializers.ValidationError("Invalid or expired Google token")
-        
-        # Check if email is verified
-        # if not google_user.get('email_verified'):
-        #     raise serializers.ValidationError('Google email not verified')
-        
-        # Extarct data from google response
-        email = google_user.get('email')
+            raise serializers.ValidationError('Invalid or expired Google token')
+
+        email = (google_user.get('email') or '').lower().strip()
         if not email:
             raise serializers.ValidationError(
-                "Google account has no email. Please use another login method."
+                'Google account has no email. Please use another login method.'
             )
-            
+        if google_user.get('email_verified') is False:
+            raise serializers.ValidationError('Google email is not verified.')
+
         first_name = google_user.get('given_name', '')
         last_name = google_user.get('family_name', '')
-        picture = google_user.get('picture', '')
         provider_id = google_user.get('sub')
-        
+        full_name = google_user.get('name') or f'{first_name} {last_name}'.strip() or email.split('@')[0]
+
         user, created = User.objects.get_or_create(
-            email = email,
+            email=email,
             defaults={
-                'full_name': google_user.get("name") or f"{first_name} {last_name}".strip(),
+                'full_name': full_name,
                 'is_active': True,
                 'provider': AuthProvider.GOOGLE,
-                'provider_id': provider_id
+                'provider_id': provider_id,
             },
         )
-                
+
         if created:
             user.set_unusable_password()
-            if picture:
-                try:
-                    pic = req.get(picture, timeout=5)
-                    pic.raise_for_status()
-                
-                    # if pic.status_code == 200:  // For web
-                    file_name = f'{user.id}_google.jpg'
-                    user.profile_picture.save(
-                        file_name,
-                        ContentFile(pic.content),
-                        save=False
-                    )
-                except Exception:
-                    pass
-            user.save()
-            # UserSettings.objects.create(user=user)
-            
-            try: 
-                # Send welcome email asynchronously
+            user.save(update_fields=['password'])
+            try:
                 from apps.users.tasks import send_welcome_email
                 send_welcome_email.delay(user.email, user.full_name)
-                
-                # Send welcome notification
                 NotificationTemplates.welcome(user)
-                
-                # Notify admins
                 NotificationTemplates.new_user_joined(user)
             except Exception as e:
-                logger.error(f"Failed to send Google login notifications: {str(e)}")
-            
-        if not created:
+                logger.error(f'Failed to send Google login notifications: {str(e)}')
+        else:
+            if not user.is_active:
+                raise serializers.ValidationError('User account is disabled.')
             if user.provider == AuthProvider.SELF:
-                raise serializers.ValidationError('Account already exists. Please login with email and password')
+                if not user.full_name:
+                    user.full_name = full_name
+                    user.save(update_fields=['full_name', 'updated_at'])
             elif user.provider != AuthProvider.GOOGLE:
                 raise serializers.ValidationError(f'Account already exists. Please login with {user.provider}.')
-        
+            elif provider_id and user.provider_id and user.provider_id != provider_id:
+                raise serializers.ValidationError('This Google account does not match the linked user.')
+            elif provider_id and not user.provider_id:
+                user.provider_id = provider_id
+                user.save(update_fields=['provider_id', 'updated_at'])
+
         refresh = RefreshToken.for_user(user)
-        
         return {
+            'message': 'Google sign-in successful.',
+            'is_new_user': created,
             'user': UserProfileSerializer(user).data,
-            # 'is_new_user': created,
             'tokens': {
                 'refresh': str(refresh),
-                'access': str(refresh.access_token)
-            }
+                'access': str(refresh.access_token),
+            },
         }
 
-      
+
 class AppleOAuthSerializer(serializers.Serializer):
     id_token = serializers.CharField(required=True)
     user = serializers.JSONField(required=False)
@@ -533,3 +519,4 @@ class RegistrationResponseSerializer(serializers.Serializer):
     access_token = serializers.CharField()
     refresh_token = serializers.CharField()
     user = UserSerializer()
+

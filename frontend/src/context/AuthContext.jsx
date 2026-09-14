@@ -59,6 +59,17 @@ export function AuthProvider({ children }) {
         setUser(session.user);
         return session.user;
       },
+      async googleLogin(id_token) {
+        const payload = await api("/users/auth/google/login/", {
+          method: "POST",
+          skipAuth: true,
+          body: { id_token }
+        });
+        const session = normalizeSession(payload);
+        saveTokens(session.tokens);
+        setUser(session.user);
+        return session.user;
+      },
       async registerInitiate(fields) {
         return api("/users/register/initiate/", {
           method: "POST",
@@ -144,3 +155,4 @@ export function useAuth() {
   if (!value) throw new Error("useAuth must be used inside AuthProvider");
   return value;
 }
+
