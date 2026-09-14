@@ -13,6 +13,7 @@ from .serializers import (
     UserKpiStatSerializer, UserScenarioStatSerializer,
     ProgressSnapshotSerializer,
 )
+from apps.notifications.services import NotificationTemplates
 from .snapshot import (
     get_or_create_progress,
     build_snapshot,
@@ -116,9 +117,13 @@ class UserProgressView(APIView):
         return Response(serializer.data)
 
     def patch(self, request):
-        serializer = UserProgressSerializer(self.get_object(), data=request.data, partial=True)
+        progress = self.get_object()
+        previous_custom_done = progress.custom_done
+        serializer = UserProgressSerializer(progress, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
+        progress = serializer.save()
+        if progress.custom_done > previous_custom_done:
+            NotificationTemplates.custom_training_completed(request.user, progress.custom_done)
         return Response(serializer.data)
 
 
@@ -154,6 +159,8 @@ class AssignmentViewSet(
         assignment.done = not assignment.done
         assignment.completed_at = timezone.now() if assignment.done else None
         assignment.save()
+        if assignment.done:
+            NotificationTemplates.assignment_completed(request.user, assignment)
         return Response(self.get_serializer(assignment).data)
 
 
@@ -210,8 +217,11 @@ class UserCardViewSet(
             card_index=card_index,
             defaults={'mastery': 0, 'progress': get_or_create_progress(request.user)},
         )
+        previous_mastery = card.mastery
         card.mastery = card.mastery + 1 if nailed else 0
         card.save(update_fields=['mastery', 'updated_at'])
+        if previous_mastery < 2 <= card.mastery:
+            NotificationTemplates.card_mastered(request.user, card)
         return Response(self.get_serializer(card).data)
 
 
@@ -266,6 +276,8 @@ class UserDrillViewSet(
         )
         drill.sets_completed += 1
         drill.save()
+        if drill.sets_completed in (1, 5, 10, 25, 50, 100):
+            NotificationTemplates.drill_milestone(request.user, drill)
         return Response(self.get_serializer(drill).data)
 
 

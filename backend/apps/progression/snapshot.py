@@ -2,6 +2,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.grades.models import CallGrade
+from apps.notifications.services import NotificationTemplates
 from apps.protocol.models import UserProtocol
 
 from .models import (
@@ -294,6 +295,8 @@ def apply_snapshot(user, data, partial=False):
     progress = get_or_create_progress(user)
     protocol = get_or_create_protocol(user)
     payload = data or {}
+    previous_rank = progress.rank
+    previous_custom_done = progress.custom_done
 
     if 'rank' in payload and payload.get('rank') is not None:
         progress.rank = max(0, min(3, int(payload['rank'])))
@@ -302,6 +305,10 @@ def apply_snapshot(user, data, partial=False):
     if 'customDone' in payload:
         progress.custom_done = int(payload.get('customDone') or 0)
     progress.save()
+    if progress.rank > previous_rank:
+        NotificationTemplates.rank_upgraded(user, previous_rank, progress.rank)
+    if progress.custom_done > previous_custom_done:
+        NotificationTemplates.custom_training_completed(user, progress.custom_done)
 
     if 'cards' in payload:
         _upsert_int_map(
@@ -327,4 +334,5 @@ def apply_snapshot(user, data, partial=False):
         _maybe_save_last_grade(user, payload.get('lastGrade'))
 
     return build_snapshot(user)
+
 

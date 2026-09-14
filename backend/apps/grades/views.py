@@ -4,6 +4,7 @@ from drf_spectacular.utils import extend_schema, extend_schema_view
 
 from .models import QuizAttempt, CallGrade, GradeKpiScore
 from .serializers import QuizAttemptSerializer, CallGradeSerializer, GradeKpiScoreSerializer
+from apps.notifications.services import NotificationTemplates
 
 
 @extend_schema_view(
@@ -24,7 +25,8 @@ class QuizAttemptViewSet(
         return QuizAttempt.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        attempt = serializer.save(user=self.request.user)
+        NotificationTemplates.quiz_attempt(self.request.user, attempt)
 
 
 @extend_schema_view(
@@ -49,7 +51,9 @@ class CallGradeViewSet(
         return CallGrade.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        grade = serializer.save(user=self.request.user)
+        if getattr(serializer, 'was_created', True):
+            NotificationTemplates.call_graded(self.request.user, grade)
 
 
 @extend_schema_view(

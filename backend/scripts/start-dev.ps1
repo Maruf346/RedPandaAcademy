@@ -85,5 +85,7 @@ Write-Host "  Docs: http://localhost:$Port/api/docs/" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
-# Start the ASGI server
-python manage.py runserver_plus $Port 2>&1
+# Start the Django development server
+python manage.py runserver "0.0.0.0:$Port" 2>&1
+
+

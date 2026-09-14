@@ -7,6 +7,7 @@ from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiResp
 from .models import AnchorRep, WeeklySession
 from .serializers import UserProtocolSerializer, AnchorRepSerializer, WeeklySessionSerializer
 from apps.progression.snapshot import get_or_create_protocol
+from apps.notifications.services import NotificationTemplates
 
 
 @extend_schema_view(
@@ -92,6 +93,9 @@ class LogRecallView(APIView):
             dates.append(date_str)
             protocol.p1_dates = dates
             protocol.save(update_fields=['p1_dates', 'updated_at'])
+            streak = len(dates)
+            if streak in (1, 3, 7, 14, 30):
+                NotificationTemplates.protocol_recall_streak(request.user, streak)
 
         return Response(UserProtocolSerializer(protocol).data)
 
@@ -125,9 +129,12 @@ class IncAnchorView(APIView):
         protocol = get_or_create_protocol(request.user)
         reps = dict(protocol.anchor_reps or {})
         key = str(anchor_index)
-        reps[key] = int(reps.get(key, 0)) + 1
+        previous_reps = int(reps.get(key, 0))
+        reps[key] = previous_reps + 1
         protocol.anchor_reps = reps
         protocol.save(update_fields=['anchor_reps', 'updated_at'])
+        if previous_reps < 5 <= reps[key]:
+            NotificationTemplates.anchor_mastered(request.user, int(anchor_index), reps[key])
 
         return Response(UserProtocolSerializer(protocol).data)
 
@@ -160,9 +167,13 @@ class SetD12View(APIView):
 
         protocol = get_or_create_protocol(request.user)
         d12 = dict(protocol.d12_pass or {})
-        d12[str(drill_number)] = True
+        key = str(drill_number)
+        was_passed = bool(d12.get(key))
+        d12[key] = True
         protocol.d12_pass = d12
         protocol.save(update_fields=['d12_pass', 'updated_at'])
+        if not was_passed:
+            NotificationTemplates.protocol_drill_passed(request.user, int(drill_number))
 
         return Response(UserProtocolSerializer(protocol).data)
 
@@ -203,6 +214,7 @@ class LogWeeklyView(APIView):
         weekly.append({'drill_number': drill_number, 'date': date_str})
         protocol.weekly_sessions = weekly
         protocol.save(update_fields=['weekly_sessions', 'updated_at'])
+        NotificationTemplates.weekly_session_logged(request.user, int(drill_number), date_str)
 
         return Response(UserProtocolSerializer(protocol).data)
 
@@ -222,6 +234,7 @@ class AdvancePhaseView(APIView):
         if protocol.phase < 4:
             protocol.phase += 1
             protocol.save(update_fields=['phase', 'updated_at'])
+            NotificationTemplates.protocol_phase_advanced(request.user, protocol.phase)
         return Response(UserProtocolSerializer(protocol).data)
 
 

@@ -64,7 +64,9 @@ class CallGradeSerializer(serializers.ModelSerializer):
                 scorecard=validated_data.get('scorecard') or [],
             ).first()
             if existing:
+                self.was_created = False
                 return existing
+        self.was_created = True
         grade = super().create(validated_data)
         sync_grade_kpi_scores(grade)
         return grade

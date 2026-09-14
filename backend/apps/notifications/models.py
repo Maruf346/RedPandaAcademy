@@ -9,9 +9,24 @@ class NotificationType(models.TextChoices):
     # Auth
     WELCOME = 'welcome', 'Welcome'
     PASSWORD_UPDATED = 'pass_updated', 'Password Updated'
+    PASSWORD_CHANGED = 'pass_changed', 'Password Changed'
     PLAYER_JOINED = 'player_joined', 'Player Joined'
 
-    
+    # Training progress
+    RANK_UPGRADED = 'rank_upgraded', 'Rank Upgraded'
+    QUIZ_PASSED = 'quiz_passed', 'Quiz Passed'
+    QUIZ_FAILED = 'quiz_failed', 'Quiz Failed'
+    CALL_GRADED = 'call_graded', 'Call Graded'
+    ASSIGNMENT_COMPLETED = 'assignment_completed', 'Assignment Completed'
+    CARD_MASTERED = 'card_mastered', 'Card Mastered'
+    DRILL_MILESTONE = 'drill_milestone', 'Drill Milestone'
+    CUSTOM_TRAINING_COMPLETED = 'custom_training_completed', 'Custom Training Completed'
+    PROTOCOL_PHASE_ADVANCED = 'protocol_phase_advanced', 'Protocol Phase Advanced'
+    PROTOCOL_RECALL_STREAK = 'protocol_recall_streak', 'Protocol Recall Streak'
+    ANCHOR_MASTERED = 'anchor_mastered', 'Anchor Mastered'
+    PROTOCOL_DRILL_PASSED = 'protocol_drill_passed', 'Protocol Drill Passed'
+    WEEKLY_SESSION_LOGGED = 'weekly_session_logged', 'Weekly Session Logged'
+
 
 
 class NotificationPriority(models.TextChoices):
