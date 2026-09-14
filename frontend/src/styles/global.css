@@ -1056,8 +1056,10 @@ li {
   }
 }
 .googleLogin {
+  display: flex;
+  justify-content: center;
   min-height: 44px;
-  margin: 14px 0 10px;
+  margin: 10px 0 2px;
 }
 .googleLogin.disabled {
   opacity: 0.6;
@@ -1069,7 +1071,7 @@ li {
   display: flex;
   font-size: 12px;
   gap: 10px;
-  margin: 12px 0;
+  margin: 14px 0 10px;
 }
 .authDivider::before,
 .authDivider::after {

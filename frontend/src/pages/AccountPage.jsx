@@ -4,7 +4,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { formatApiError } from "../lib/api.js";
 
 
-function GoogleSignInButton({ disabled, onCredential, onError }) {
+function GoogleSignInButton({ disabled, onCredential, onError, text = "signin_with", locale = "en" }) {
   const buttonRef = useRef(null);
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
@@ -24,6 +24,10 @@ function GoogleSignInButton({ disabled, onCredential, onError }) {
       window.google.accounts.id.renderButton(buttonRef.current, {
         theme: "outline",
         size: "large",
+        shape: "rectangular",
+        text,
+        logo_alignment: "left",
+        locale,
         width: buttonRef.current.offsetWidth || 320
       });
     }
@@ -31,9 +35,9 @@ function GoogleSignInButton({ disabled, onCredential, onError }) {
     if (window.google?.accounts?.id) {
       render();
     } else {
-      const existing = document.querySelector('script[src="https://accounts.google.com/gsi/client"]');
+      const existing = document.querySelector('script[src^="https://accounts.google.com/gsi/client"]');
       const script = existing || document.createElement("script");
-      script.src = "https://accounts.google.com/gsi/client";
+      script.src = `https://accounts.google.com/gsi/client?hl=${locale}`;
       script.async = true;
       script.defer = true;
       script.onload = render;
@@ -44,7 +48,7 @@ function GoogleSignInButton({ disabled, onCredential, onError }) {
     return () => {
       cancelled = true;
     };
-  }, [clientId, onCredential, onError]);
+  }, [clientId, locale, onCredential, onError, text]);
 
   if (!clientId) {
     return <p className="small muted">Google Sign-In needs VITE_GOOGLE_CLIENT_ID.</p>;
@@ -153,16 +157,6 @@ export default function AccountPage() {
         {error ? <div className="notice">{error}</div> : null}
         {notice ? <div className="small green">{notice}</div> : null}
 
-        {(mode === "login" || mode === "register") && (
-          <>
-            <GoogleSignInButton
-              disabled={busy}
-              onCredential={handleGoogleCredential}
-              onError={handleGoogleError}
-            />
-            <div className="authDivider"><span>or</span></div>
-          </>
-        )}
 
         {mode === "login" && (
           <form
@@ -188,6 +182,13 @@ export default function AccountPage() {
             <button className="btn block" disabled={busy}>
               {busy ? "Signing in…" : "Sign in"}
             </button>
+            <div className="authDivider"><span>or</span></div>
+            <GoogleSignInButton
+              disabled={busy}
+              text="signin_with"
+              onCredential={handleGoogleCredential}
+              onError={handleGoogleError}
+            />
           </form>
         )}
 
@@ -234,6 +235,13 @@ export default function AccountPage() {
             <button className="btn block" disabled={busy}>
               {busy ? "Sending OTP…" : "Send verification code"}
             </button>
+            <div className="authDivider"><span>or</span></div>
+            <GoogleSignInButton
+              disabled={busy}
+              text="signup_with"
+              onCredential={handleGoogleCredential}
+              onError={handleGoogleError}
+            />
           </form>
         )}
 
@@ -374,4 +382,5 @@ export default function AccountPage() {
     </main>
   );
 }
+
 
