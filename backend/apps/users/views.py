@@ -299,27 +299,18 @@ class UserLogoutView(APIView):
     serializer_class = None
     
     def post(self, request):
-        # logout(request)
-        
-        try:
-            refresh_token = request.data.get('refresh')
-            if refresh_token:
-                token = RefreshToken(refresh_token)
-                token.blacklist()
-                
-            logout(request)
-        
-            return Response(
-                {'message': 'Successfully logged out.'},
-                status=status.HTTP_205_RESET_CONTENT
-            )
-        except Exception as e:
-            return Response(
-                {
-                    'error': str(e)
-                },
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        refresh_token = request.data.get('refresh')
+        if refresh_token:
+            try:
+                RefreshToken(refresh_token).blacklist()
+            except Exception as exc:
+                logger.warning('Refresh token blacklist failed during logout: %s', exc)
+
+        logout(request)
+        return Response(
+            {'message': 'Successfully logged out.'},
+            status=status.HTTP_205_RESET_CONTENT
+        )
             
 
 @extend_schema(
@@ -437,5 +428,6 @@ class AppleLoginMobileView(APIView):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
         return Response(serializer.validated_data, status=status.HTTP_200_OK)
+
 
 

@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { api, loadTokens, saveTokens } from "../lib/api.js";
+import { api, getApiBase, loadTokens, saveTokens } from "../lib/api.js";
 
 const AuthContext = createContext(null);
 
@@ -130,18 +130,23 @@ export function AuthProvider({ children }) {
       },
       async logout() {
         const tokens = loadTokens();
+        saveTokens(null);
+        setUser(null);
+
         try {
-          if (tokens?.refresh) {
-            await api("/users/logout/", {
+          if (tokens?.refresh && tokens?.access) {
+            await fetch(`${getApiBase()}/users/logout/`, {
               method: "POST",
-              body: { refresh: tokens.refresh }
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${tokens.access}`
+              },
+              body: JSON.stringify({ refresh: tokens.refresh })
             });
           }
         } catch {
-          // Local sign-out still proceeds.
+          // Local sign-out has already completed.
         }
-        saveTokens(null);
-        setUser(null);
       }
     }),
     [user, ready]
@@ -155,4 +160,5 @@ export function useAuth() {
   if (!value) throw new Error("useAuth must be used inside AuthProvider");
   return value;
 }
+
 
